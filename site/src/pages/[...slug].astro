@@ -1,5 +1,6 @@
 ---
 import DocLayout from '../layouts/DocLayout.astro';
+import PageActions from '../components/PageActions.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -11,7 +12,7 @@ export async function getStaticPaths() {
     for (const entry of entries) {
       paths.push({
         params: { slug: `${name}/${entry.id}` },
-        props: { entry },
+        props: { entry, collection: name },
       });
     }
   }
@@ -19,20 +20,28 @@ export async function getStaticPaths() {
   return paths;
 }
 
-const { entry } = Astro.props;
+const { entry, collection } = Astro.props;
 const { Content, headings } = await render(entry);
+
+const rawUrl = `/${collection}/${entry.id}.md`;
 ---
 
 <DocLayout title={entry.data.title} headings={headings}>
   <header class="mb-8 border-b border-border pb-6">
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
-      {entry.data.title}
-    </h1>
-    {entry.data.section && (
-      <p class="mt-2 text-sm text-text-muted">
-        DDD sections {entry.data.section}
-      </p>
-    )}
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+          {entry.data.title}
+        </h1>
+        {entry.data.section && (
+          <p class="mt-2 text-sm text-text-muted">
+            DDD sections {entry.data.section}
+          </p>
+        )}
+      </div>
+
+      <PageActions title={entry.data.title} rawUrl={rawUrl} />
+    </div>
   </header>
 
   <article class="prose prose-docs">

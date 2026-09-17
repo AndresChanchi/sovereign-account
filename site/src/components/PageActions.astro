@@ -1,0 +1,155 @@
+---
+interface Props {
+  title: string;
+  rawUrl: string;
+}
+
+const { title, rawUrl } = Astro.props;
+
+const origin = Astro.site
+  ? String(Astro.site).replace(/\/$/, '')
+  : Astro.url.origin;
+const absoluteUrl = `${origin}${rawUrl}`;
+
+const prompt = `Help me understand this documentation page from Sovereign Account.
+
+Title: ${title}
+Source: ${absoluteUrl}
+
+Please fetch the source and explain the concepts, invariants and any relevant context.`;
+
+const encoded = encodeURIComponent(prompt);
+
+const targets = [
+  { label: 'ChatGPT', href: `https://chatgpt.com/?q=${encoded}` },
+  { label: 'Claude', href: `https://claude.ai/new?q=${encoded}` },
+  { label: 'Perplexity', href: `https://www.perplexity.ai/search?q=${encoded}` },
+  { label: 'Grok', href: `https://x.com/i/grok?text=${encoded}` },
+];
+---
+
+<div class="page-actions" data-raw-url={rawUrl}>
+  <button type="button" class="action-btn" data-copy aria-label="Copy page as markdown">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+    <span data-copy-label>Copy</span>
+  </button>
+
+  <a href={rawUrl} target="_blank" rel="noopener" class="action-btn" aria-label="View raw markdown">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M16 13H8M16 17H8M10 9H8" />
+    </svg>
+    <span>View raw</span>
+  </a>
+
+  <div class="dropdown" data-dropdown>
+    <button
+      type="button"
+      class="action-btn"
+      data-dropdown-toggle
+      aria-haspopup="menu"
+      aria-expanded="false"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+      <span>Open in</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </button>
+
+    <div class="dropdown-menu" data-dropdown-menu hidden role="menu">
+      {targets.map((t) => (
+        <a
+          href={t.href}
+          target="_blank"
+          rel="noopener"
+          class="dropdown-item"
+          role="menuitem"
+        >
+          {t.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</div>
+
+<script>
+  function setup() {
+    document.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+
+      // --- Copy button ---
+      const copyBtn = target.closest('[data-copy]') as HTMLElement | null;
+      if (copyBtn) {
+        const container = copyBtn.closest('[data-raw-url]');
+        const url = container?.getAttribute('data-raw-url');
+        if (!url) return;
+        try {
+          const res = await fetch(url);
+          const text = await res.text();
+          await navigator.clipboard.writeText(text);
+          const label = copyBtn.querySelector('[data-copy-label]');
+          if (label) {
+            const orig = label.textContent || 'Copy';
+            label.textContent = 'Copied';
+            setTimeout(() => {
+              if (label.textContent === 'Copied') label.textContent = orig;
+            }, 1600);
+          }
+        } catch (err) {
+          console.error('[copy]', err);
+        }
+        return;
+      }
+
+      // --- Dropdown toggle ---
+      const toggle = target.closest('[data-dropdown-toggle]') as HTMLElement | null;
+      const allMenus = document.querySelectorAll('[data-dropdown-menu]');
+      const allToggles = document.querySelectorAll('[data-dropdown-toggle]');
+
+      const closeAll = () => {
+        allMenus.forEach((m) => m.setAttribute('hidden', ''));
+        allToggles.forEach((t) => t.setAttribute('aria-expanded', 'false'));
+      };
+
+      if (toggle) {
+        e.stopPropagation();
+        const dd = toggle.closest('[data-dropdown]');
+        const menu = dd?.querySelector('[data-dropdown-menu]');
+        if (!menu) return;
+        const wasOpen = !menu.hasAttribute('hidden');
+        closeAll();
+        if (!wasOpen) {
+          menu.removeAttribute('hidden');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+        return;
+      }
+
+      // --- Click outside → close ---
+      if (!target.closest('[data-dropdown-menu]')) {
+        closeAll();
+      }
+    });
+
+    // --- Escape closes dropdown ---
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('[data-dropdown-menu]').forEach((m) => m.setAttribute('hidden', ''));
+        document.querySelectorAll('[data-dropdown-toggle]').forEach((t) => t.setAttribute('aria-expanded', 'false'));
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+</script>
