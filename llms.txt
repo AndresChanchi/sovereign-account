@@ -1,0 +1,32 @@
+# Sovereign Account
+> A universal primitive for sovereign identity, authority, and execution.
+
+## Domains
+- [Account](./domain/account/index.md): Sovereign identity, authority derivation, and execution decision model.
+
+## Reference
+- [Glossary](./glossary.md): All concepts with stable identifiers.
+
+## Domain: Account
+
+### Ubiquitous Language
+- [Index](./domain/account/ubiquitous-language/index.md)
+- [01 — Foundations](./domain/account/ubiquitous-language/01-foundations.md): Purpose, external context, Subject, Identity, Account, sovereignty.
+- [02 — Authority Model](./domain/account/ubiquitous-language/02-authority-model.md): Authority, Capability, Credential, Credential Authority.
+- [03 — Authorization](./domain/account/ubiquitous-language/03-authorization.md): Proof, Verifier, Requested Authority, Authorization, Validation, Replay Protection.
+- [04 — Derived Authority](./domain/account/ubiquitous-language/04-derived-authority.md): Session, Delegation, Delegatee, Restriction, Effective Authority, Authority Abstraction.
+- [05 — State and Policy](./domain/account/ubiquitous-language/05-state-and-policy.md): Authorization State, Transitions, Policy, Policy Effect, Policy Consumption.
+- [06 — Execution Model](./domain/account/ubiquitous-language/06-execution-model.md): Domain Action, Execution Request, Target, Context, Constraints, Runtime, Engine, Adapter.
+- [07 — Reference](./domain/account/ubiquitous-language/07-reference.md): Classification, Identifier semantics, Stress Test, Architectural principles, Consolidated model.
+
+### Formal Laws
+- [Index](./domain/account/formal-laws/index.md)
+- [D1 — Delegation and Authority](./domain/account/formal-laws/D1-delegation-and-authority.md)
+- [D2 — Policy Effect and State](./domain/account/formal-laws/D2-policy-effect-and-state.md)
+- [D3 — Entity Identity and Recognition](./domain/account/formal-laws/D3-entity-identity-and-recognition.md)
+- [D4 — Proof and Authorization Equality](./domain/account/formal-laws/D4-proof-and-authorization-equality.md)
+- [D5 — Restriction Association](./domain/account/formal-laws/D5-restriction-association.md)
+- [D6 — Authorization and Environment](./domain/account/formal-laws/D6-authorization-and-environment.md)
+
+### Formal Verification
+- [Formal sources index](./domain/account/formal/index.md)
