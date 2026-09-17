@@ -1,0 +1,75 @@
+---
+import { getCollection } from 'astro:content';
+
+const ul = (await getCollection('ubiquitous-language'))
+  .filter((e) => e.data.type !== 'index')
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const laws = (await getCollection('formal-laws'))
+  .filter((e) => e.data.type !== 'index')
+  .sort((a, b) => a.id.localeCompare(b.id));
+
+const currentPath = Astro.url.pathname;
+
+function isActive(href: string) {
+  return currentPath === href || currentPath === `${href}/`;
+}
+---
+
+<nav class="text-sm" aria-label="Documentation">
+  <div class="mb-6">
+    <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+      Ubiquitous Language
+    </p>
+    <ul class="space-y-0.5">
+      {ul.map((entry) => {
+        const href = `/ubiquitous-language/${entry.id}`;
+        const active = isActive(href);
+        return (
+          <li>
+            <a
+              href={href}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'block rounded-md px-3 py-1.5 transition-colors',
+                active
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-text-muted hover:bg-surface hover:text-text',
+              ]}
+            >
+              {entry.data.title}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+
+  <div>
+    <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+      Formal Laws
+    </p>
+    <ul class="space-y-0.5">
+      {laws.map((entry) => {
+        const href = `/formal-laws/${entry.id}`;
+        const active = isActive(href);
+        return (
+          <li>
+            <a
+              href={href}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'block rounded-md px-3 py-1.5 transition-colors',
+                active
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-text-muted hover:bg-surface hover:text-text',
+              ]}
+            >
+              {entry.data.title}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+</nav>

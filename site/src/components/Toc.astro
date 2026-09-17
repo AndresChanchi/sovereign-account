@@ -1,0 +1,38 @@
+---
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings?: Heading[];
+}
+
+const { headings = [] } = Astro.props;
+const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{filtered.length > 0 && (
+  <nav class="text-xs" aria-label="On this page">
+    <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+      On this page
+    </p>
+    <ul class="space-y-1 border-l border-border">
+      {filtered.map((h) => (
+        <li>
+          <a
+            href={`#${h.slug}`}
+            class:list={[
+              'block py-1 transition-colors',
+              h.depth === 2 ? 'pl-3' : 'pl-5 text-text-muted',
+              'text-text-muted hover:text-primary',
+            ]}
+          >
+            {h.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
