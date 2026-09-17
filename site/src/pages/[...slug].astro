@@ -1,0 +1,41 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const collections = ['ubiquitous-language', 'formal-laws'] as const;
+  const paths = [];
+
+  for (const name of collections) {
+    const entries = await getCollection(name);
+    for (const entry of entries) {
+      paths.push({
+        params: { slug: `${name}/${entry.id}` },
+        props: { entry },
+      });
+    }
+  }
+
+  return paths;
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+
+<DocLayout title={entry.data.title} headings={headings}>
+  <header class="mb-8 border-b border-border pb-6">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+      {entry.data.title}
+    </h1>
+    {entry.data.section && (
+      <p class="mt-2 text-sm text-text-muted">
+        DDD sections {entry.data.section}
+      </p>
+    )}
+  </header>
+
+  <article class="prose prose-docs">
+    <Content />
+  </article>
+</DocLayout>

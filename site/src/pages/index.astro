@@ -1,0 +1,36 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+import '../styles/globals.css';
+---
+
+<DocLayout title="Sovereign Account">
+  <div class="max-w-2xl">
+    <h1 class="text-5xl font-bold tracking-tight text-primary">
+      Sovereign Account
+    </h1>
+    <p class="mt-4 text-lg text-text-muted">
+      A universal primitive for sovereign identity, authority, and execution.
+    </p>
+
+    <div class="mt-10 grid gap-4 sm:grid-cols-2">
+      <a
+        href="/ubiquitous-language/01-foundations"
+        class="rounded-lg border border-border bg-surface-raised p-5 hover:border-primary transition-colors"
+      >
+        <h2 class="font-semibold">Ubiquitous Language</h2>
+        <p class="mt-1 text-sm text-text-muted">
+          The vocabulary of the Account domain.
+        </p>
+      </a>
+      <a
+        href="/formal-laws/D1-delegation-and-authority"
+        class="rounded-lg border border-border bg-surface-raised p-5 hover:border-primary transition-colors"
+      >
+        <h2 class="font-semibold">Formal Laws</h2>
+        <p class="mt-1 text-sm text-text-muted">
+          The invariants D1–D6.
+        </p>
+      </a>
+    </div>
+  </div>
+</DocLayout>
