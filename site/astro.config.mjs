@@ -5,7 +5,7 @@ import { unified } from '@astrojs/markdown-remark';
 /**
  * Removes the leading H1 from markdown bodies.
  * The page layout renders its own H1 from the frontmatter title.
- * The raw .md files copied to dist/ keep their H1 for standalone consumption.
+ * The raw .md files copied to public/ keep their H1 for standalone consumption.
  */
 function remarkStripLeadingH1() {
   return (tree) => {
@@ -16,6 +16,27 @@ function remarkStripLeadingH1() {
     ) {
       tree.children.shift();
     }
+  };
+}
+
+/**
+ * Rewrites markdown-internal `.md` links to route-style hrefs during HTML render.
+ * Keeps the raw .md files (in public/) untouched for LLM consumption.
+ */
+function rehypeRewriteMdLinks() {
+  return (tree) => {
+    const walk = (node) => {
+      if (node.type === 'element' && node.tagName === 'a') {
+        const href = node.properties?.href;
+        if (typeof href === 'string' && href.endsWith('.md')) {
+          node.properties.href = href.replace(/\.md$/, '');
+        }
+      }
+      if (Array.isArray(node.children)) {
+        node.children.forEach(walk);
+      }
+    };
+    walk(tree);
   };
 }
 
@@ -31,6 +52,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [remarkStripLeadingH1],
+      rehypePlugins: [rehypeRewriteMdLinks],
     }),
     shikiConfig: {
       theme: 'github-dark',
