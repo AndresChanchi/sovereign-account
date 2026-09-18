@@ -33,3 +33,8 @@ src/content/docs/
 
 public/ubiquitous-language/
 public/formal-laws/
+# Irys deploy state
+deploy-manifest.json
+dist-id.txt
+dist-manifest.csv
+dist-manifest.json
