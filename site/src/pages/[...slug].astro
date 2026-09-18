@@ -10,9 +10,12 @@ export async function getStaticPaths() {
   for (const name of collections) {
     const entries = await getCollection(name);
     for (const entry of entries) {
+      const isIndexEntry = entry.id === 'index' || entry.id === '' || entry.id === name;
+      const slug = isIndexEntry ? name : `${name}/${entry.id}`;
+
       paths.push({
-        params: { slug: `${name}/${entry.id}` },
-        props: { entry, collection: name },
+        params: { slug },
+        props: { entry, collection: name, isIndexEntry },
       });
     }
   }
@@ -20,10 +23,12 @@ export async function getStaticPaths() {
   return paths;
 }
 
-const { entry, collection } = Astro.props;
+const { entry, collection, isIndexEntry } = Astro.props;
 const { Content, headings } = await render(entry);
 
-const rawUrl = `/${collection}/${entry.id}.md`;
+const rawUrl = isIndexEntry
+  ? `/${collection}/index.md`
+  : `/${collection}/${entry.id}.md`;
 ---
 
 <DocLayout title={entry.data.title} headings={headings}>
