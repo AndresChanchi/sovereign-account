@@ -10,7 +10,10 @@
     "dev": "bun run sync && astro dev",
     "build": "bun run sync && bun run validate && astro build && bun run generate:data && bun run generate:llms",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "deploy:balance": "bun --env-file=.env run scripts/balance.ts",
+    "deploy:devnet": "bun --env-file=.env run scripts/deploy.ts --devnet",
+    "deploy:mainnet": "bun --env-file=.env run scripts/deploy.ts --mainnet"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.0",
@@ -20,8 +23,12 @@
     "tailwindcss": "4.3.3"
   },
   "devDependencies": {
+    "@irys/upload": "0.0.15",
+    "@irys/upload-ethereum": "0.0.16",
+    "ethers": "6.17.0",
     "@types/js-yaml": "4.0.9",
     "js-yaml": "5.4.1",
     "typescript": "7.0.2"
   }
 }
+
