@@ -68,3 +68,30 @@ Chain (semantic) ≠ Execution Environment (infrastructure)
  ## Machine-readable
 
  - `llms.txt` — root LLM index (account points here).
+
+
+ ---
+
+---
+
+## Architecture Diagrams
+
+The C4 model of the Account domain, rendered interactively from `architecture/workspace.dsl`.
+
+### System Context
+
+<iframe
+  src="/architecture/index.html?diagram=Context"
+  style="width: 100%; height: 600px; border: 0; border-radius: 0.5rem;"
+  title="System Context — Sovereign Account"
+  loading="lazy"
+></iframe>
+
+### Containers
+
+<iframe
+  src="/architecture/index.html?diagram=Containers"
+  style="width: 100%; height: 600px; border: 0; border-radius: 0.5rem;"
+  title="Container Diagram — Sovereign Account"
+  loading="lazy"
+></iframe>
