@@ -5,30 +5,9 @@ interface Props {
 }
 
 const { title, rawUrl } = Astro.props;
-
-const origin = Astro.site
-  ? String(Astro.site).replace(/\/$/, '')
-  : Astro.url.origin;
-const absoluteUrl = `${origin}${rawUrl}`;
-
-const prompt = `Help me understand this documentation page from Sovereign Account.
-
-Title: ${title}
-Source: ${absoluteUrl}
-
-Please fetch the source and explain the concepts, invariants and any relevant context.`;
-
-const encoded = encodeURIComponent(prompt);
-
-const targets = [
-  { label: 'ChatGPT', href: `https://chatgpt.com/?q=${encoded}` },
-  { label: 'Claude', href: `https://claude.ai/new?q=${encoded}` },
-  { label: 'Perplexity', href: `https://www.perplexity.ai/search?q=${encoded}` },
-  { label: 'Grok', href: `https://x.com/i/grok?text=${encoded}` },
-];
 ---
 
-<div class="page-actions" data-raw-url={rawUrl}>
+<div class="page-actions" data-raw-url={rawUrl} data-title={title}>
   <button type="button" class="action-btn" data-copy aria-label="Copy page as markdown">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -63,38 +42,64 @@ const targets = [
       </svg>
     </button>
 
-    <div class="dropdown-menu" data-dropdown-menu hidden role="menu">
-      {targets.map((t) => (
-        <a
-          href={t.href}
-          target="_blank"
-          rel="noopener"
-          class="dropdown-item"
-          role="menuitem"
-        >
-          {t.label}
-        </a>
-      ))}
-    </div>
+    <div class="dropdown-menu" data-dropdown-menu hidden role="menu"></div>
   </div>
 </div>
 
 <script>
   function setup() {
+    function getActionContext() {
+      const container = document.querySelector('.page-actions') as HTMLElement | null;
+      if (!container) return null;
+      const rawUrl = container.dataset.rawUrl || '';
+      const title = container.dataset.title || '';
+      const absolute = new URL(rawUrl, document.baseURI).toString();
+      return { rawUrl, title, absolute };
+    }
+
+    function buildTargets(absolute: string, title: string) {
+      const prompt = `Help me understand this documentation page from Sovereign Account.
+
+Title: ${title}
+Source: ${absolute}
+
+Please fetch the source and explain the concepts, invariants and any relevant context.`;
+      const encoded = encodeURIComponent(prompt);
+      return [
+        { label: 'ChatGPT', href: `https://chatgpt.com/?q=${encoded}` },
+        { label: 'Claude', href: `https://claude.ai/new?q=${encoded}` },
+        { label: 'Perplexity', href: `https://www.perplexity.ai/search?q=${encoded}` },
+        { label: 'Grok', href: `https://x.com/i/grok?text=${encoded}` },
+      ];
+    }
+
+    function renderDropdown() {
+      const menu = document.querySelector('[data-dropdown-menu]') as HTMLElement | null;
+      if (!menu || menu.dataset.built === '1') return;
+      const ctx = getActionContext();
+      if (!ctx) return;
+      const targets = buildTargets(ctx.absolute, ctx.title);
+      menu.innerHTML = targets
+        .map(
+          (t) =>
+            `<a href="${t.href}" target="_blank" rel="noopener" class="dropdown-item" role="menuitem">${t.label}</a>`,
+        )
+        .join('');
+      menu.dataset.built = '1';
+    }
+
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
 
-      // --- Copy button ---
       const copyBtn = target.closest('[data-copy]') as HTMLElement | null;
       if (copyBtn) {
-        const container = copyBtn.closest('[data-raw-url]');
-        const url = container?.getAttribute('data-raw-url');
-        if (!url) return;
+        const ctx = getActionContext();
+        if (!ctx) return;
+        const label = copyBtn.querySelector('[data-copy-label]');
         try {
-          const res = await fetch(url);
+          const res = await fetch(ctx.rawUrl);
           const text = await res.text();
           await navigator.clipboard.writeText(text);
-          const label = copyBtn.querySelector('[data-copy-label]');
           if (label) {
             const orig = label.textContent || 'Copy';
             label.textContent = 'Copied';
@@ -102,13 +107,18 @@ const targets = [
               if (label.textContent === 'Copied') label.textContent = orig;
             }, 1600);
           }
-        } catch (err) {
-          console.error('[copy]', err);
+        } catch {
+          if (label) {
+            const orig = label.textContent || 'Copy';
+            label.textContent = 'Failed';
+            setTimeout(() => {
+              if (label.textContent === 'Failed') label.textContent = orig;
+            }, 1600);
+          }
         }
         return;
       }
 
-      // --- Dropdown toggle ---
       const toggle = target.closest('[data-dropdown-toggle]') as HTMLElement | null;
       const allMenus = document.querySelectorAll('[data-dropdown-menu]');
       const allToggles = document.querySelectorAll('[data-dropdown-toggle]');
@@ -120,6 +130,7 @@ const targets = [
 
       if (toggle) {
         e.stopPropagation();
+        renderDropdown();
         const dd = toggle.closest('[data-dropdown]');
         const menu = dd?.querySelector('[data-dropdown-menu]');
         if (!menu) return;
@@ -132,13 +143,9 @@ const targets = [
         return;
       }
 
-      // --- Click outside → close ---
-      if (!target.closest('[data-dropdown-menu]')) {
-        closeAll();
-      }
+      if (!target.closest('[data-dropdown-menu]')) closeAll();
     });
 
-    // --- Escape closes dropdown ---
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.querySelectorAll('[data-dropdown-menu]').forEach((m) => m.setAttribute('hidden', ''));
