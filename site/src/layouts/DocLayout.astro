@@ -10,7 +10,6 @@ interface Props {
 }
 
 const { title, headings = [] } = Astro.props;
-const hasToc = headings.length > 0;
 ---
 
 <!doctype html>
@@ -102,18 +101,12 @@ const hasToc = headings.length > 0;
           </button>
         </div>
 
-        <Sidebar />
-
-        {hasToc && (
-          <div class="mt-6 border-t border-border pt-4">
-            <Toc headings={headings} />
-          </div>
-        )}
+        <Sidebar headings={headings} />
       </aside>
     </div>
 
     <div class="container-page grid grid-cols-1 lg:grid-cols-[var(--spacing-sidebar)_1fr_var(--spacing-toc)] gap-8 py-8">
-      <aside class="hidden lg:block">
+      <aside class="sidebar-desktop">
         <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
           <Sidebar />
         </div>
@@ -123,7 +116,7 @@ const hasToc = headings.length > 0;
         <slot />
       </main>
 
-      <aside class="hidden xl:block">
+      <aside class="toc-desktop">
         <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
           <Toc headings={headings} />
         </div>
@@ -199,5 +192,10 @@ const hasToc = headings.length > 0;
         }
       })();
     </script>
+
+    <script
+      type="text/javascript"
+      src="/architecture/js/structurizr-embed.js"
+    ></script>
   </body>
 </html>

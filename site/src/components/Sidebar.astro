@@ -1,6 +1,18 @@
 ---
 import { getCollection } from 'astro:content';
 
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings?: Heading[];
+}
+
+const { headings = [] } = Astro.props;
+
 const ul = (await getCollection('ubiquitous-language'))
   .filter((e) => e.data.type !== 'index')
   .sort((a, b) => a.id.localeCompare(b.id));
@@ -12,19 +24,33 @@ const laws = (await getCollection('formal-laws'))
 const currentPath = Astro.url.pathname;
 
 function isActive(href: string) {
-  return currentPath === href || currentPath === href.replace(/\/$/, '') || currentPath === `${href}`;
+  const normalized = href.replace(/\/$/, '');
+  const current = currentPath.replace(/\/$/, '');
+  return current === normalized;
 }
+
+const filteredHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const hasNestedToc = filteredHeadings.length > 0;
 ---
 
 <nav class="text-sm" aria-label="Documentation">
   <div class="mb-6">
-    <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+    <a
+      href="/ubiquitous-language/"
+      class:list={[
+        'mb-2 block px-3 text-xs font-semibold uppercase tracking-wider transition-colors',
+        isActive('/ubiquitous-language/')
+          ? 'text-primary'
+          : 'text-text-muted hover:text-text',
+      ]}
+    >
       Ubiquitous Language
-    </p>
+    </a>
     <ul class="space-y-0.5">
       {ul.map((entry) => {
         const href = `/ubiquitous-language/${entry.id}/`;
         const active = isActive(href);
+        const showNested = active && hasNestedToc;
         return (
           <li>
             <a
@@ -39,6 +65,87 @@ function isActive(href: string) {
             >
               {entry.data.title}
             </a>
+            {showNested && (
+              <ul
+                class="mt-1 mb-2 ml-3 space-y-0.5 border-l border-border"
+                data-toc-nav
+              >
+                {filteredHeadings.map((h) => (
+                  <li>
+                    <a
+                      href={`${href}#${h.slug}`}
+                      data-toc-link
+                      data-toc-slug={h.slug}
+                      class:list={[
+                        'toc-link block py-1 text-xs transition-colors',
+                        h.depth === 2 ? 'pl-3' : 'pl-5',
+                      ]}
+                    >
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+
+  <div class="mb-6">
+    <a
+      href="/formal-laws/"
+      class:list={[
+        'mb-2 block px-3 text-xs font-semibold uppercase tracking-wider transition-colors',
+        isActive('/formal-laws/')
+          ? 'text-primary'
+          : 'text-text-muted hover:text-text',
+      ]}
+    >
+      Formal Laws
+    </a>
+    <ul class="space-y-0.5">
+      {laws.map((entry) => {
+        const href = `/formal-laws/${entry.id}/`;
+        const active = isActive(href);
+        const showNested = active && hasNestedToc;
+        return (
+          <li>
+            <a
+              href={href}
+              aria-current={active ? 'page' : undefined}
+              class:list={[
+                'block rounded-md px-3 py-1.5 transition-colors',
+                active
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-text-muted hover:bg-surface hover:text-text',
+              ]}
+            >
+              {entry.data.title}
+            </a>
+            {showNested && (
+              <ul
+                class="mt-1 mb-2 ml-3 space-y-0.5 border-l border-border"
+                data-toc-nav
+              >
+                {filteredHeadings.map((h) => (
+                  <li>
+                    <a
+                      href={`${href}#${h.slug}`}
+                      data-toc-link
+                      data-toc-slug={h.slug}
+                      class:list={[
+                        'toc-link block py-1 text-xs transition-colors',
+                        h.depth === 2 ? 'pl-3' : 'pl-5',
+                      ]}
+                    >
+                      {h.text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         );
       })}
@@ -46,30 +153,26 @@ function isActive(href: string) {
   </div>
 
   <div>
-    <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
-      Formal Laws
-    </p>
+    <a
+      href="/architecture/"
+      class:list={[
+        'mb-2 block px-3 text-xs font-semibold uppercase tracking-wider transition-colors',
+        isActive('/architecture/')
+          ? 'text-primary'
+          : 'text-text-muted hover:text-text',
+      ]}
+    >
+      Architecture
+    </a>
     <ul class="space-y-0.5">
-      {laws.map((entry) => {
-        const href = `/formal-laws/${entry.id}/`;
-        const active = isActive(href);
-        return (
-          <li>
-            <a
-              href={href}
-              aria-current={active ? 'page' : undefined}
-              class:list={[
-                'block rounded-md px-3 py-1.5 transition-colors',
-                active
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-text-muted hover:bg-surface hover:text-text',
-              ]}
-            >
-              {entry.data.title}
-            </a>
-          </li>
-        );
-      })}
+      <li>
+        <a
+          href="/architecture/"
+          class="block rounded-md px-3 py-1.5 transition-colors text-text-muted hover:bg-surface hover:text-text"
+        >
+          C4 Diagrams
+        </a>
+      </li>
     </ul>
   </div>
 </nav>

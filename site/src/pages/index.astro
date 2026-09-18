@@ -1,36 +1,99 @@
 ---
 import DocLayout from '../layouts/DocLayout.astro';
 import '../styles/globals.css';
+
+const sections = [
+  {
+    href: '/ubiquitous-language/',
+    title: 'Ubiquitous Language',
+    description:
+      'The vocabulary of the Account domain. Concepts, relationships, and the consolidated model.',
+    meta: '7 chapters',
+  },
+  {
+    href: '/formal-laws/',
+    title: 'Formal Laws',
+    description:
+      'The invariants D1–D6 that any implementation must preserve. Each law set is self-contained.',
+    meta: '6 law sets',
+  },
+  {
+    href: '/architecture/',
+    title: 'Architecture',
+    description:
+      'Interactive C4 diagrams rendered from the workspace model.',
+    meta: 'C4',
+  },
+];
 ---
 
 <DocLayout title="Sovereign Account">
-  <div class="max-w-2xl">
-    <h1 class="text-5xl font-bold tracking-tight text-primary">
-      Sovereign Account
-    </h1>
-    <p class="mt-4 text-lg text-text-muted">
-      A universal primitive for sovereign identity, authority, and execution.
-    </p>
+  <div class="max-w-3xl">
+    <header class="mb-10 sm:mb-14">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-primary leading-tight">
+        Sovereign Account
+      </h1>
+      <p class="mt-4 sm:mt-5 text-lg sm:text-xl text-text-muted leading-relaxed">
+        A universal primitive for sovereign identity, authority, and execution.
+      </p>
+    </header>
 
-    <div class="mt-10 grid gap-4 sm:grid-cols-2">
-      <a
-        href="/ubiquitous-language/01-foundations"
-        class="rounded-lg border border-border bg-surface-raised p-5 hover:border-primary transition-colors"
-      >
-        <h2 class="font-semibold">Ubiquitous Language</h2>
-        <p class="mt-1 text-sm text-text-muted">
-          The vocabulary of the Account domain.
-        </p>
-      </a>
-      <a
-        href="/formal-laws/D1-delegation-and-authority"
-        class="rounded-lg border border-border bg-surface-raised p-5 hover:border-primary transition-colors"
-      >
-        <h2 class="font-semibold">Formal Laws</h2>
-        <p class="mt-1 text-sm text-text-muted">
-          The invariants D1–D6.
-        </p>
-      </a>
-    </div>
+    <section class="mb-10 sm:mb-14">
+      <p class="text-text leading-relaxed">
+        Sovereign Account defines a formal model that lets an application determine:
+      </p>
+      <ul class="mt-4 space-y-2 pl-5 list-disc text-text-muted leading-relaxed marker:text-primary">
+        <li>Which sovereign <code class="text-text">Identity</code> is exercising authority.</li>
+        <li>What authority exists for that identity.</li>
+        <li>Which subject or mechanism may exercise that authority.</li>
+        <li>Under what conditions it may be exercised.</li>
+        <li>Which action the consuming context requests.</li>
+        <li>Whether that exercise is authorized.</li>
+        <li>How an authorized decision is materialized.</li>
+      </ul>
+      <p class="mt-6 text-text-muted leading-relaxed">
+        The domain is implementation-agnostic. It does not depend on a specific
+        blockchain, virtual machine, cryptographic curve, or account-abstraction
+        standard.
+      </p>
+    </section>
+
+    <section class="mb-10 sm:mb-14">
+      <h2 class="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Explore</h2>
+      <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {sections.map((s) => (
+          <a
+            href={s.href}
+            class="group flex flex-col rounded-lg border border-border bg-surface-raised p-4 sm:p-5 transition-colors hover:border-primary"
+          >
+            <div class="flex items-start justify-between gap-3 mb-1">
+              <h3 class="font-semibold text-base sm:text-lg group-hover:text-primary transition-colors">
+                {s.title}
+              </h3>
+              <span class="text-xs text-text-muted whitespace-nowrap pt-1">
+                {s.meta}
+              </span>
+            </div>
+            <p class="mt-1.5 text-sm text-text-muted leading-relaxed">
+              {s.description}
+            </p>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <footer class="border-t border-border pt-6">
+      <p class="text-sm text-text-muted leading-relaxed">
+        Made with 💚 —{' '}
+        <a
+          href="https://github.com/AndresChanchi/sovereign-account"
+          class="text-primary hover:underline"
+          target="_blank"
+          rel="noopener"
+        >
+          view source on GitHub →
+        </a>
+      </p>
+    </footer>
   </div>
 </DocLayout>

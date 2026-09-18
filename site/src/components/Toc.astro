@@ -39,10 +39,7 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 )}
 
 <script>
-  function setup() {
-    const nav = document.querySelector('[data-toc-nav]') as HTMLElement | null;
-    if (!nav) return;
-
+  function setupToc(nav: HTMLElement) {
     const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
     if (links.length === 0) return;
 
@@ -96,6 +93,11 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     computeActive();
+  }
+
+  function setup() {
+    const navs = document.querySelectorAll<HTMLElement>('[data-toc-nav]');
+    navs.forEach(setupToc);
   }
 
   if (document.readyState === 'loading') {
