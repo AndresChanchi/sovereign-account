@@ -45,21 +45,21 @@ verification:
     - domain/account/formal/account/AccountTransitions.dfy
 ---
 
- # State and Policy
+# State and Policy
 
- > Original DDD sections: §25–§29.
+> Original DDD sections: §25–§29.
 
- This chapter defines the **operational authority state** of an `Account` and the mechanisms through which **external decisions** produce valid transitions on that state.
+This chapter defines the **operational authority state** of an `Account` and the mechanisms through which **external decisions** produce valid transitions on that state.
 
 ---
 
- ## Authorization State
+## Authorization State
 
- **Authorization State** represents the operational authorization state maintained by an `Account`.
+**Authorization State** represents the operational authorization state maintained by an `Account`.
 
- It may contain:
+It may contain:
 
- - `Credential` instances;
+- `Credential` instances;
 - `Credential` ↔ `Account` recognition;
 - `CredentialAuthority` relations;
 - `Session` instances;
@@ -69,35 +69,35 @@ verification:
 - recognized `PolicyEffect` instances;
 - structural relationships necessary to evaluate authority.
 
- `Authorization State` does not represent an execution.
+`Authorization State` does not represent an execution.
 
- `Authorization State` is the state on which `EffectiveAuthority` is resolved.
+`Authorization State` is the state on which `EffectiveAuthority` is resolved.
 
- ### Important
+### Important
 
- `Credential`, `Session`, `Delegation`, `Capability`, etc. may exist as independent concepts, but **the relationships between them belong to `AuthorizationState` when those relationships are part of the operational state of an `Account`**.
+`Credential`, `Session`, `Delegation`, `Capability`, etc. may exist as independent concepts, but **the relationships between them belong to `AuthorizationState` when those relationships are part of the operational state of an `Account`**.
 
- This avoids introducing those relationships artificially inside the Value Objects.
+This avoids introducing those relationships artificially inside the Value Objects.
 
- ### Restriction Association
+### Restriction Association
 
- `Restriction` is a Value Object that does not contain a reference to the `Capability` or `Scope` to which it applies. That association is part of `AuthorizationState`:
+`Restriction` is a Value Object that does not contain a reference to the `Capability` or `Scope` to which it applies. That association is part of `AuthorizationState`:
 
-```
+```text
 RestrictionMap: (Capability × Optional Scope) → Restriction
 ```
 
- For the formal treatment, see Formal Laws — D5.
+For the formal treatment, see [Formal Laws — D5](../formal-laws/D5-restriction-association.md).
 
 ---
 
- ## Authorization State Transition
+## Authorization State Transition
 
- An **Authorization State Transition** represents a valid change in `AuthorizationState`.
+An **Authorization State Transition** represents a valid change in `AuthorizationState`.
 
- Examples:
+Examples:
 
- - registering a `Credential`;
+- registering a `Credential`;
 - recognizing a `Credential` in an `Account`;
 - establishing `CredentialAuthority`;
 - modifying `CredentialAuthority`;
@@ -109,73 +109,73 @@ RestrictionMap: (Capability × Optional Scope) → Restriction
 - modifying `Capability` instances;
 - applying a `PolicyEffect`.
 
- These transitions belong to the `Account` domain.
+These transitions belong to the `Account` domain.
 
- They do not represent business executions over external resources.
+They do not represent business executions over external resources.
 
 ---
 
- ## Policy
+## Policy
 
- A **Policy** represents an external decision recognized by an `Account` as capable of producing one or more changes to `AuthorizationState`.
+A **Policy** represents an external decision recognized by an `Account` as capable of producing one or more changes to `AuthorizationState`.
 
- The `Policy` **does not need its own identity inside the `Account`**.
+The `Policy` **does not need its own identity inside the `Account`**.
 
- In external contexts, an Entity may exist representing the procedure that produced that decision.
+In external contexts, an Entity may exist representing the procedure that produced that decision.
 
- For example:
+For example:
 
-```
+```text
 RecoveryPolicyRequest
 ```
 
- may be an Entity of a `Recovery` bounded context with:
+may be an Entity of a `Recovery` bounded context with:
 
- - `requestId`;
+- `requestId`;
 - lifecycle;
 - approval;
 - expiration;
 - cancellation;
 - consumption.
 
- But:
+But:
 
-```
+```text
 RecoveryPolicyRequest
     ≠
 Policy Effect
 ```
 
- and:
+and:
 
-```
+```text
 RecoveryPolicyRequest
     ≠
 Account Policy Value
 ```
 
- The `Account` consumes the recognized decision; it does not need to know the full lifecycle of the producing bounded context.
+The `Account` consumes the recognized decision; it does not need to know the full lifecycle of the producing bounded context.
 
 ---
 
- ## Policy Effect
+## Policy Effect
 
- A **Policy Effect** represents the semantic change a `Policy` produces on `AuthorizationState`.
+A **Policy Effect** represents the semantic change a `Policy` produces on `AuthorizationState`.
 
- Examples:
+Examples:
 
-```
+```text
 RevokeCredential(X)
 EnableRecovery
 DisableCapability(Y)
 ModifyAuthorizationCondition(Z)
 ```
 
- `PolicyEffect` is a **Value Object**.
+`PolicyEffect` is a **Value Object**.
 
- Two distinct `Policy` instances may produce the same effect:
+Two distinct `Policy` instances may produce the same effect:
 
-```
+```text
 PolicyRequest #1
     → RevokeCredential(X)
 
@@ -183,27 +183,27 @@ PolicyRequest #2
     → RevokeCredential(X)
 ```
 
- and:
+and:
 
-```
+```text
 RevokeCredential(X)
     ==
 RevokeCredential(X)
 ```
 
- Historical identity belongs to the external procedure, not to the effect.
+Historical identity belongs to the external procedure, not to the effect.
 
- The formal algebra of `PolicyEffect` and its transformation over `AuthorizationState` are defined in Formal Laws — D2.
+The formal algebra of `PolicyEffect` and its transformation over `AuthorizationState` are defined in [Formal Laws — D2](../formal-laws/D2-policy-effect-and-state.md).
 
 ---
 
- ## Policy Consumption
+## Policy Consumption
 
- **Policy Consumption** represents the recognition and application of a `Policy` by an `Account`.
+**Policy Consumption** represents the recognition and application of a `Policy` by an `Account`.
 
- Conceptually:
+Conceptually:
 
-```
+```text
 External Policy
       ↓
 Policy Recognition
@@ -215,33 +215,33 @@ Policy Effect(s)
 Authorization State Transition
 ```
 
- The `Account` does not need to know how the `Policy` was approved.
+The `Account` does not need to know how the `Policy` was approved.
 
- Approval belongs to the producing bounded context.
+Approval belongs to the producing bounded context.
 
- A `Policy` may produce **one or more `PolicyEffect` instances**.
+A `Policy` may produce **one or more `PolicyEffect` instances**.
 
- The semantics of:
+The semantics of:
 
- - atomicity;
+- atomicity;
 - order;
 - idempotency;
 - duplication;
 - partial consumption;
 
- belong to the formalization of `Policy Consumption` and `Account Transitions`.
+belong to the formalization of `Policy Consumption` and `Account Transitions`.
 
- `PolicyConsumption` is a **Value Object / transition value** while no historical lifecycle of its own is discovered inside the `Account`.
+`PolicyConsumption` is a **Value Object / transition value** while no historical lifecycle of its own is discovered inside the `Account`.
 
- The formal treatment of `Policy Consumption` as an atomic transition is defined in Formal Laws — D2.
+The formal treatment of `Policy Consumption` as an atomic transition is defined in [Formal Laws — D2](../formal-laws/D2-policy-effect-and-state.md).
 
 ---
 
- ## Cross-References
+## Cross-References
 
- - Foundations — `Account` as the operational component.
-- Authority Model — `Capability` and `Credential`.
-- Derived Authority — `EffectiveAuthority` as derived from state.
-- Execution Model — how `AuthorizationState` is consumed by the `Runtime`.
-- Formal Laws — D2 — `PolicyEffect` algebra and atomic consumption.
-- Formal Laws — D5 — `Restriction` association in `AuthorizationState`.
+- [Foundations](01-foundations.md) — `Account` as the operational component.
+- [Authority Model](02-authority-model.md) — `Capability` and `Credential`.
+- [Derived Authority](04-derived-authority.md) — `EffectiveAuthority` as derived from state.
+- [Execution Model](06-execution-model.md) — how `AuthorizationState` is consumed by the `Runtime`.
+- [Formal Laws — D2](../formal-laws/D2-policy-effect-and-state.md) — `PolicyEffect` algebra and atomic consumption.
+- [Formal Laws — D5](../formal-laws/D5-restriction-association.md) — `Restriction` association in `AuthorizationState`.

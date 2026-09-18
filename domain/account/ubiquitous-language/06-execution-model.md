@@ -63,58 +63,58 @@ TransferFunds
 ApprovePayroll
 CreateInvoice
 ShareAlbum
-````
+```
 
- The domain does not define:
+The domain does not define:
 
- - the catalog;
+- the catalog;
 - the meaning;
 - the lifecycle;
 - the internal identity;
 - the business rules.
 
- `DomainAction` is an **external Value Object**.
+`DomainAction` is an **external Value Object**.
 
- The domain only needs a sufficient representation to determine whether authority exists to execute the action.
+The domain only needs a sufficient representation to determine whether authority exists to execute the action.
 
 ---
 
- ## Execution Request
+## Execution Request
 
- An **Execution Request** represents a request to materialize a `DomainAction`.
+An **Execution Request** represents a request to materialize a `DomainAction`.
 
- It may contain:
+It may contain:
 
- - `DomainAction`;
+- `DomainAction`;
 - `Authorization`;
 - `RequestedAuthority`;
 - `ExecutionTarget`;
 - `ExecutionConstraints`;
 - context necessary for the `Runtime`.
 
- `ExecutionRequest` is a **Value Object / request value**.
+`ExecutionRequest` is a **Value Object / request value**.
 
- It does not represent a materialized `Execution`.
+It does not represent a materialized `Execution`.
 
 ---
 
- ## Execution Target
+## Execution Target
 
- An **Execution Target** identifies the technical destination on which the execution will be materialized.
+An **Execution Target** identifies the technical destination on which the execution will be materialized.
 
- It may represent:
+It may represent:
 
- - a contract;
+- a contract;
 - a resource;
 - a service;
 - an infrastructure;
 - another compatible destination.
 
- It does not define `Authority`.
+It does not define `Authority`.
 
- The difference is:
+The difference is:
 
-```
+```text
 Capability Scope
     =
 where authority exists
@@ -126,13 +126,13 @@ where execution is materialized
 
 ---
 
- ## Execution Context
+## Execution Context
 
- An **Execution Context** represents the complete and validated decision required for an execution to be materialized.
+An **Execution Context** represents the complete and validated decision required for an execution to be materialized.
 
- It may incorporate the results of:
+It may incorporate the results of:
 
- - `Authorization`;
+- `Authorization`;
 - `EffectiveAuthority`;
 - `AuthorizationState`;
 - `PolicyEffect` instances;
@@ -142,44 +142,44 @@ where execution is materialized
 - `ExecutionTarget`;
 - other relevant conditions.
 
- A valid `ExecutionContext` means:
+A valid `ExecutionContext` means:
 
- > **the required authority and necessary conditions have been evaluated, and execution may proceed under that context.**
+> **the required authority and necessary conditions have been evaluated, and execution may proceed under that context.**
 
- `ExecutionContext` is a **Value Object / complete execution decision**.
+`ExecutionContext` is a **Value Object / complete execution decision**.
 
- The `Execution Engine` receives only valid contexts.
+The `Execution Engine` receives only valid contexts.
 
- It does not re-decide `Authority`.
+It does not re-decide `Authority`.
 
 ---
 
- ## Execution Constraints
+## Execution Constraints
 
- **Execution Constraints** represent conditions that must be satisfied to materialize an `ExecutionContext`.
+**Execution Constraints** represent conditions that must be satisfied to materialize an `ExecutionContext`.
 
- They may include:
+They may include:
 
- - limits;
+- limits;
 - temporality;
 - atomicity;
 - operational limits;
 - materialization conditions;
 - other recognized restrictions.
 
- `Execution Constraints` do not create `Authority`.
+`Execution Constraints` do not create `Authority`.
 
- They only condition the materialization of an authorized decision.
+They only condition the materialization of an authorized decision.
 
 ---
 
- ## Runtime
+## Runtime
 
- The **Runtime** is the transient component that **orchestrates the distributed evaluation and operational materialization** of a request.
+The **Runtime** is the transient component that **orchestrates the distributed evaluation and operational materialization** of a request.
 
- The `Runtime`:
+The `Runtime`:
 
- 1. receives an `ExecutionRequest`;
+1. receives an `ExecutionRequest`;
 2. coordinates retrieval of the relevant `AuthorizationState`;
 3. coordinates `Authorization` validation;
 4. coordinates `EffectiveAuthority` determination;
@@ -188,13 +188,13 @@ where execution is materialized
 7. builds the `ExecutionContext`;
 8. delivers only valid contexts to the `Execution Engine`.
 
- ### Important
+### Important
 
- The `Runtime` **is not the owner of all authority rules**.
+The `Runtime` **is not the owner of all authority rules**.
 
- Evaluation may be distributed across bounded contexts or specialized modules, for example:
+Evaluation may be distributed across bounded contexts or specialized modules, for example:
 
-```
+```text
 Authentication / Credential Verification
 Authorization
 Recovery
@@ -204,19 +204,19 @@ Economics
 Execution Gateway
 ```
 
- The `Runtime` coordinates those results.
+The `Runtime` coordinates those results.
 
- Therefore:
+Therefore:
 
-```
+```text
 Runtime
     =
 Authority / Execution Orchestration
 ```
 
- not:
+not:
 
-```
+```text
 Runtime
     =
 owner of every authorization rule
@@ -224,47 +224,47 @@ owner of every authorization rule
 
 ---
 
- ## Execution Engine
+## Execution Engine
 
- The **Execution Engine** receives a valid `ExecutionContext` and transforms that decision into materializable operations.
+The **Execution Engine** receives a valid `ExecutionContext` and transforms that decision into materializable operations.
 
- Its conceptual input is:
+Its conceptual input is:
 
-```
+```text
 Execution Context
 ```
 
- It does not:
+It does not:
 
- - interpret `Credential` instances;
+- interpret `Credential` instances;
 - decide `Authority`;
 - create `Authorization`;
 - define `DomainAction` instances;
 - redefine `Policy`;
 - implement cryptographic rules.
 
- Its responsibility is:
+Its responsibility is:
 
- > **to materialize a decision already taken.**
+> **to materialize a decision already taken.**
 
- It may produce one or multiple operations when the infrastructure supports:
+It may produce one or multiple operations when the infrastructure supports:
 
- - batching;
+- batching;
 - multicall;
 - atomicity;
 - other equivalent mechanisms.
 
 ---
 
- ## Execution
+## Execution
 
- An **Execution** represents the concrete process/materialization of an authorized action.
+An **Execution** represents the concrete process/materialization of an authorized action.
 
- It is not currently an Entity of the `Account` domain.
+It is not currently an Entity of the `Account` domain.
 
- The architecture distinguishes:
+The architecture distinguishes:
 
-```
+```text
 Execution Request
         ↓
 Execution Context
@@ -278,30 +278,30 @@ Adapter
 physical execution
 ```
 
- An execution may consist of:
+An execution may consist of:
 
-```
+```text
 one operation
 ```
 
- or:
+or:
 
-```
+```text
 multiple operations
 ```
 
- The infrastructure determines how the following are guaranteed:
+The infrastructure determines how the following are guaranteed:
 
- - atomicity;
+- atomicity;
 - integrity;
 - replay protection;
 - constraint satisfaction.
 
- ### Lifecycle
+### Lifecycle
 
- The `Runtime` may have an operational lifecycle:
+The `Runtime` may have an operational lifecycle:
 
-```
+```text
 Validation
 → PreFlight
 → Accounting
@@ -309,9 +309,9 @@ Validation
 → Settlement
 ```
 
- and results such as:
+and results such as:
 
-```
+```text
 Completed
 Reverted
 Aborted
@@ -320,63 +320,63 @@ Cancelled
 Failed
 ```
 
- but these represent **the lifecycle of the operational workflow**, not a persistent `Execution` Entity of the `Account` domain.
+but these represent **the lifecycle of the operational workflow**, not a persistent `Execution` Entity of the `Account` domain.
 
- Therefore:
+Therefore:
 
-```
+```text
 Execution
     ≠
 Execution Entity
 ```
 
- and no `ExecutionId` is introduced.
+and no `ExecutionId` is introduced.
 
 ---
 
- ## Adapter
+## Adapter
 
- An **Adapter** materializes an `Execution` on a concrete infrastructure.
+An **Adapter** materializes an `Execution` on a concrete infrastructure.
 
- Examples:
+Examples:
 
- - EIP-7702;
+- EIP-7702;
 - ERC-4337;
 - RIP-7560;
 - future forms of account abstraction;
 - other compatible infrastructures.
 
- The `Adapter` transforms:
+The `Adapter` transforms:
 
-```
+```text
 Domain Execution Semantics
         ↓
 Infrastructure primitives
 ```
 
- and not the other way around.
+and not the other way around.
 
- ### Principle
+### Principle
 
- > **The domain defines what a valid execution means; the `Adapter` defines how to materialize it on a concrete infrastructure.**
+> **The domain defines what a valid execution means; the `Adapter` defines how to materialize it on a concrete infrastructure.**
 
 ---
 
- ## Blockchain
+## Blockchain
 
- The **Blockchain** is a fundamental part of the context.
+The **Blockchain** is a fundamental part of the context.
 
- It provides the shared environment where `Account` instances can:
+It provides the shared environment where `Account` instances can:
 
- - exercise authority;
+- exercise authority;
 - produce verifiable changes;
 - materialize executions.
 
- The domain does not abstract the existence of a blockchain.
+The domain does not abstract the existence of a blockchain.
 
- It abstracts the differences between concrete infrastructures used to operate on it.
+It abstracts the differences between concrete infrastructures used to operate on it.
 
-```
+```text
 Blockchain
     ≠
 Ethereum
@@ -394,69 +394,69 @@ ERC-4337
 
 ---
 
- ## Chain and Execution Environment
+## Chain and Execution Environment
 
- The `Chain` attribute in the `Authorization` Context identifies the semantic execution environment for which the authorization was issued.
+The `Chain` attribute in the `Authorization` Context identifies the semantic execution environment for which the authorization was issued.
 
- It forms part of the semantic value of `Authorization`.
+It forms part of the semantic value of `Authorization`.
 
- The **Execution Environment** is a separate concept: it is the concrete environment where a decision is materialized. It is not part of the `ExecutionContext` Value Object.
+The **Execution Environment** is a separate concept: it is the concrete environment where a decision is materialized. It is not part of the `ExecutionContext` Value Object.
 
- The relationship between them is expressed as a compatibility relation:
+The relationship between them is expressed as a compatibility relation:
 
-```
+```text
 compatible: Chain × ExecutionEnvironment → bool
 ```
 
- An `ExecutionContext` may be intrinsically valid while remaining incompatible with a specific `ExecutionEnvironment`. Compatibility is a **materialization condition**, not a validity condition.
+An `ExecutionContext` may be intrinsically valid while remaining incompatible with a specific `ExecutionEnvironment`. Compatibility is a **materialization condition**, not a validity condition.
 
- The formal treatment of this separation is defined in Formal Laws — D6.
+The formal treatment of this separation is defined in [Formal Laws — D6](../formal-laws/D6-authorization-and-environment.md).
 
 ---
 
- ## Gas Payment
+## Gas Payment
 
- **Gas Payment** represents the provision of economic resources necessary to materialize an `Execution`.
+**Gas Payment** represents the provision of economic resources necessary to materialize an `Execution`.
 
- `Gas Payment` is independent of `Authority`.
+`Gas Payment` is independent of `Authority`.
 
- An entity may pay for an `Execution` without acquiring authority over it.
+An entity may pay for an `Execution` without acquiring authority over it.
 
-```
+```text
 Authority
     ≠
 Gas Payment
 ```
 
- Paying does not grant authorization.
+Paying does not grant authorization.
 
 ---
 
- ## Execution Sponsor
+## Execution Sponsor
 
- An **Execution Sponsor** provides resources to pay for an `Execution` on behalf of another subject.
+An **Execution Sponsor** provides resources to pay for an `Execution` on behalf of another subject.
 
- The `Sponsor` does not automatically acquire `Authority`.
+The `Sponsor` does not automatically acquire `Authority`.
 
- Concrete mechanisms may include:
+Concrete mechanisms may include:
 
- - relayers;
+- relayers;
 - paymasters;
 - sponsored accounts;
 - native mechanisms;
 - others.
 
- Sponsorship belongs to infrastructure/economics.
+Sponsorship belongs to infrastructure/economics.
 
 ---
 
- ## Authentication
+## Authentication
 
- **Authentication** is the process through which evidence is obtained that a `Credential` corresponds to the mechanism or subject that intends to exercise it.
+**Authentication** is the process through which evidence is obtained that a `Credential` corresponds to the mechanism or subject that intends to exercise it.
 
- `Authentication` is not equivalent to `Authorization`.
+`Authentication` is not equivalent to `Authorization`.
 
-```
+```text
 Authentication
     =
 who / what produced the evidence
@@ -466,14 +466,14 @@ Authorization
 what authority may be exercised
 ```
 
- A correct authentication does not automatically grant a `Capability`.
+A correct authentication does not automatically grant a `Capability`.
 
 ---
 
- ## Cross-References
+## Cross-References
 
- - Foundations — `Account` as the operational component.
-- Authorization — how `Authorization` participates in `ExecutionContext`.
-- Derived Authority — `EffectiveAuthority` as an input to `ExecutionContext`.
-- State and Policy — state transitions produced by `PolicyEffect`.
-- Formal Laws — D6 — Chain semantics and environment compatibility.
+- [Foundations](01-foundations.md) — `Account` as the operational component.
+- [Authorization](03-authorization.md) — how `Authorization` participates in `ExecutionContext`.
+- [Derived Authority](04-derived-authority.md) — `EffectiveAuthority` as an input to `ExecutionContext`.
+- [State and Policy](05-state-and-policy.md) — state transitions produced by `PolicyEffect`.
+- [Formal Laws — D6](../formal-laws/D6-authorization-and-environment.md) — Chain semantics and environment compatibility.

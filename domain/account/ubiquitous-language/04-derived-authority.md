@@ -67,23 +67,23 @@ verification:
     - domain/account/formal/authority/EffectiveAuthority.dfy
 ---
 
- # Derived Authority
+# Derived Authority
 
- > Original DDD sections: §20–§24, §45.
+> Original DDD sections: §20–§24, §45.
 
- This chapter defines the mechanisms through which authority is **derived, restricted, and made effective** in a specific context: `Session`, `Delegation`, `Restriction`, and `EffectiveAuthority`.
+This chapter defines the mechanisms through which authority is **derived, restricted, and made effective** in a specific context: `Session`, `Delegation`, `Restriction`, and `EffectiveAuthority`.
 
 ---
 
- ## Session
+## Session
 
- A **Session** is a temporary authorization derived from a `Credential`.
+A **Session** is a temporary authorization derived from a `Credential`.
 
- `Session` is an **Entity**.
+`Session` is an **Entity**.
 
- It maintains identity during its lifecycle:
+It maintains identity during its lifecycle:
 
-```
+```text
 active
 → expired
 
@@ -91,11 +91,11 @@ active
 → revoked
 ```
 
- Expiration or revocation does not create another `Session`.
+Expiration or revocation does not create another `Session`.
 
- A `Session` may limit:
+A `Session` may limit:
 
- - `Capability` instances;
+- `Capability` instances;
 - `Scope`;
 - duration;
 - frequency;
@@ -104,79 +104,79 @@ active
 - recipients;
 - other conditions.
 
- ### Invariant
+### Invariant
 
-```
+```text
 Session Authority
     ⊆
 Credential Authority
 ```
 
- A `Session` may never expand the authority of its source `Credential`.
+A `Session` may never expand the authority of its source `Credential`.
 
- ### Effect of Credential revocation on Session
+### Effect of Credential revocation on Session
 
- If the `Credential` stops being valid (by revocation or another cause), the `Session` **does not change its identity or its persistent state** (e.g. it remains `Active`).
+If the `Credential` stops being valid (by revocation or another cause), the `Session` **does not change its identity or its persistent state** (e.g. it remains `Active`).
 
- However, it **stops being usable as a source of authority**. Its contribution to `EffectiveAuthority` becomes `∅` while the `Credential` is not valid.
+However, it **stops being usable as a source of authority**. Its contribution to `EffectiveAuthority` becomes `∅` while the `Credential` is not valid.
 
- This maintains the distinction between:
+This maintains the distinction between:
 
- - **Entity lifecycle** (identity and persistent state);
+- **Entity lifecycle** (identity and persistent state);
 - **Effective usability** (capacity to contribute to authority).
 
- ### Propagation rule
+### Propagation rule
 
-```
+```text
 Credential revoked
     ⇒
 Session (even if Active) does not contribute to EffectiveAuthority
 ```
 
- It is not necessary to change the persistent state of the `Session` to `Revoked` when the `Credential` is revoked; invalidity propagates through the authority rule.
+It is not necessary to change the persistent state of the `Session` to `Revoked` when the `Credential` is revoked; invalidity propagates through the authority rule.
 
 ---
 
- ## Delegation
+## Delegation
 
- A **Delegation** allows deriving authority toward another `Subject` under explicit conditions.
+A **Delegation** allows deriving authority toward another `Subject` under explicit conditions.
 
- `Delegation` is an **Entity**.
+`Delegation` is an **Entity**.
 
- It maintains identity during its lifecycle:
+It maintains identity during its lifecycle:
 
-```
+```text
 active
 → revoked
 ```
 
- Revoking a `Delegation` does not create a new `Delegation`.
+Revoking a `Delegation` does not create a new `Delegation`.
 
- It does not automatically transfer:
+It does not automatically transfer:
 
- - `Identity`;
+- `Identity`;
 - sovereignty;
 - ownership of the original `Capability` instances.
 
- ### Invariant
+### Invariant
 
-```
+```text
 Delegated Authority
     ⊆
 Delegatable Authority of source
 ```
 
- Delegated authority may never exceed the authority the source may legitimately delegate.
+Delegated authority may never exceed the authority the source may legitimately delegate.
 
 ---
 
- ## Delegatee
+## Delegatee
 
- A **Delegatee** is the `Subject` that receives derived authority through a `Delegation`.
+A **Delegatee** is the `Subject` that receives derived authority through a `Delegation`.
 
- It may represent:
+It may represent:
 
- - a person;
+- a person;
 - an organization;
 - an agent;
 - a service;
@@ -184,21 +184,21 @@ Delegatable Authority of source
 - an `Account`;
 - another `Subject`.
 
- `Delegatee` does not mean sovereign owner.
+`Delegatee` does not mean sovereign owner.
 
 ---
 
- ## Restriction
+## Restriction
 
- A **Restriction** limits the conditions under which a `Capability` may be exercised.
+A **Restriction** limits the conditions under which a `Capability` may be exercised.
 
- `Restriction` is a **Value Object**.
+`Restriction` is a **Value Object**.
 
- It does not create new `Capability` instances.
+It does not create new `Capability` instances.
 
- It may limit:
+It may limit:
 
- - quantity;
+- quantity;
 - value;
 - frequency;
 - time;
@@ -208,9 +208,9 @@ Delegatable Authority of source
 - type of operation;
 - number of executions.
 
- Example:
+Example:
 
-```
+```text
 Spend
     +
 maximum_value = X
@@ -218,23 +218,23 @@ maximum_value = X
 valid_until = T
 ```
 
- Its meaning depends on its values.
+Its meaning depends on its values.
 
- ### Association with Capability and Scope
+### Association with Capability and Scope
 
- A `Restriction` is a pure Value Object. It does not contain a reference to the `Capability` or `Scope` to which it applies. That association is maintained in `AuthorizationState` (see State and Policy and Formal Laws — D5).
+A `Restriction` is a pure Value Object. It does not contain a reference to the `Capability` or `Scope` to which it applies. That association is maintained in `AuthorizationState` (see [State and Policy](05-state-and-policy.md) and [Formal Laws — D5](../formal-laws/D5-restriction-association.md)).
 
 ---
 
- ## Effective Authority
+## Effective Authority
 
- **Effective Authority** represents the authority that may actually be exercised in a specific context.
+**Effective Authority** represents the authority that may actually be exercised in a specific context.
 
- It is a **derived, contextual, and by-value** representation.
+It is a **derived, contextual, and by-value** representation.
 
- Conceptually:
+Conceptually:
 
-```
+```text
 Account Capabilities
         ∩
 Credential Authority
@@ -254,30 +254,30 @@ Applicable Policy Effects
 Effective Authority
 ```
 
- ### Context is an input, not part of the Value Object
+### Context is an input, not part of the Value Object
 
- `EffectiveAuthority` is a Value Object whose value is the set of `Capability` instances that may actually be exercised in a given context.
+`EffectiveAuthority` is a Value Object whose value is the set of `Capability` instances that may actually be exercised in a given context.
 
- The **context** (`Account`, time, `ExecutionTarget`, etc.) is an **input parameter** for the function that derives `EffectiveAuthority`. It does not form part of the identity of the resulting Value Object.
+The **context** (`Account`, time, `ExecutionTarget`, etc.) is an **input parameter** for the function that derives `EffectiveAuthority`. It does not form part of the identity of the resulting Value Object.
 
- Therefore:
+Therefore:
 
- - Two evaluations of `EffectiveAuthority` with different contexts may produce different values.
+- Two evaluations of `EffectiveAuthority` with different contexts may produce different values.
 - The context is not stored as part of the Value Object.
 - The equality of `EffectiveAuthority` is determined exclusively by the set of `Capability` instances that results from the derivation.
 
- **Example:**
+**Example:**
 
- - `EffectiveAuthority(I, Account X, Context A) = {Upload, View}`
+- `EffectiveAuthority(I, Account X, Context A) = {Upload, View}`
 - `EffectiveAuthority(I, Account X, Context B) = {View}` (because Context B restricts authority)
 
- Both results are distinct Value Objects because their values are different. The context is not part of the value; it is an input.
+Both results are distinct Value Objects because their values are different. The context is not part of the value; it is an input.
 
- `EffectiveAuthority` does not need its own identity.
+`EffectiveAuthority` does not need its own identity.
 
- The same `Credential` may produce different `EffectiveAuthority` instances depending on:
+The same `Credential` may produce different `EffectiveAuthority` instances depending on:
 
- - `Account`;
+- `Account`;
 - `Session`;
 - `Delegation`;
 - `Scope`;
@@ -289,19 +289,19 @@ Effective Authority
 
 ---
 
- ## Authority Abstraction
+## Authority Abstraction
 
- **Authority Abstraction** is the ability to represent:
+**Authority Abstraction** is the ability to represent:
 
-```
+```text
 who may exercise
 what authority
 under what conditions
 ```
 
- without requiring the conceptual model to know:
+without requiring the conceptual model to know:
 
- - a cryptographic curve;
+- a cryptographic curve;
 - a wallet;
 - an authentication provider;
 - a concrete blockchain;
@@ -309,16 +309,16 @@ under what conditions
 - an address representation;
 - another implementation.
 
- `Authority Abstraction` does not mean removing blockchain from the model.
+`Authority Abstraction` does not mean removing blockchain from the model.
 
- It means abstracting the concrete implementations through which authority is exercised.
+It means abstracting the concrete implementations through which authority is exercised.
 
 ---
 
- ## Cross-References
+## Cross-References
 
- - Authority Model — `Capability`, `Credential`, `CredentialAuthority`.
-- Authorization — `RequestedAuthority` and `EffectiveAuthority`.
-- State and Policy — `AuthorizationState`, `PolicyEffect`, `PolicyConsumption`.
-- Formal Laws — D1 — delegation and derived authority invariants.
-- Formal Laws — D5 — `Restriction` association semantics.
+- [Authority Model](02-authority-model.md) — `Capability`, `Credential`, `CredentialAuthority`.
+- [Authorization](03-authorization.md) — `RequestedAuthority` and `EffectiveAuthority`.
+- [State and Policy](05-state-and-policy.md) — `AuthorizationState`, `PolicyEffect`, `PolicyConsumption`.
+- [Formal Laws — D1](../formal-laws/D1-delegation-and-authority.md) — delegation and derived authority invariants.
+- [Formal Laws — D5](../formal-laws/D5-restriction-association.md) — `Restriction` association semantics.

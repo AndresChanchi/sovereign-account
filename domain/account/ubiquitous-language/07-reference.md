@@ -39,13 +39,13 @@ Account
 Credential
 Session
 Delegation
-````
-
- These entities have their own individual identity and lifecycle continuity.
-
- Their identifiers are:
-
 ```
+
+These entities have their own individual identity and lifecycle continuity.
+
+Their identifiers are:
+
+```text
 IdentityId
 AccountId
 CredentialId
@@ -53,9 +53,9 @@ SessionId
 DelegationId
 ```
 
- ### Value Objects
+### Value Objects
 
-```
+```text
 Subject
 Capability
 CapabilityKind
@@ -75,9 +75,9 @@ ExecutionConstraints
 Timestamp
 ```
 
- ### Operational / Infrastructure Concepts
+### Operational / Infrastructure Concepts
 
-```
+```text
 Proof
 Verifier
 Runtime
@@ -90,17 +90,17 @@ Execution Sponsor
 Authentication
 ```
 
- These must not be artificially assigned Entity identity within the `Account` domain.
+These must not be artificially assigned Entity identity within the `Account` domain.
 
 ---
 
- ## Identifier Semantics
+## Identifier Semantics
 
- An **Identifier** represents a stable reference used to distinguish an Entity whose individual identity is part of its semantics.
+An **Identifier** represents a stable reference used to distinguish an Entity whose individual identity is part of its semantics.
 
- The current identifiers are:
+The current identifiers are:
 
-```
+```text
 Identity       → IdentityId
 Account        → AccountId
 Credential     → CredentialId
@@ -108,9 +108,9 @@ Session        → SessionId
 Delegation     → DelegationId
 ```
 
- No identifiers are assigned to:
+No identifiers are assigned to:
 
-```
+```text
 Capability
 PolicyEffect
 Authorization
@@ -120,13 +120,13 @@ Restriction
 Scope
 ```
 
- because their meaning is determined by their content.
+because their meaning is determined by their content.
 
- ### Identifier ≠ representation
+### Identifier ≠ representation
 
- An Identifier is not automatically:
+An Identifier is not automatically:
 
- - a hash;
+- a hash;
 - a nonce;
 - an address;
 - a `B256`;
@@ -134,29 +134,29 @@ Scope
 - a public key;
 - a classification.
 
- ### Size
+### Size
 
- The domain does not currently establish:
+The domain does not currently establish:
 
-```
+```text
 |Identifier| = 32 bytes
 ```
 
- The physical representation may be defined by infrastructure without necessarily changing the semantics of the Identifier.
+The physical representation may be defined by infrastructure without necessarily changing the semantics of the Identifier.
 
- ### Uniqueness
+### Uniqueness
 
- Each Entity must be distinguishable within the identity scope required by its lifecycle.
+Each Entity must be distinguishable within the identity scope required by its lifecycle.
 
- The concrete way to guarantee that uniqueness belongs to the design of the state and corresponding infrastructure.
+The concrete way to guarantee that uniqueness belongs to the design of the state and corresponding infrastructure.
 
- ### Generation
+### Generation
 
- The domain does not require a single generation mechanism.
+The domain does not require a single generation mechanism.
 
- It may be:
+It may be:
 
- - deterministic;
+- deterministic;
 - random;
 - derived;
 - assigned;
@@ -165,51 +165,51 @@ Scope
 
 ---
 
- ## Universal Account Stress Test
+## Universal Account Stress Test
 
- Every new abstraction must be justified by a real and recurring problem.
+Every new abstraction must be justified by a real and recurring problem.
 
- Before introducing a new Entity, Value Object, relationship, or rule, the following must be verified:
+Before introducing a new Entity, Value Object, relationship, or rule, the following must be verified:
 
- ### 1\. Real problem
+### 1. Real problem
 
- What concrete and recurring problem does it solve?
+What concrete and recurring problem does it solve?
 
- ### 2\. Reuse
+### 2. Reuse
 
- Does it appear in more than one application or context?
+Does it appear in more than one application or context?
 
- ### 3\. Application independence
+### 3. Application independence
 
- Can it exist without knowing the specific business model of an application?
+Can it exist without knowing the specific business model of an application?
 
- ### 4\. Infrastructure independence
+### 4. Infrastructure independence
 
- Can it be expressed without depending on a concrete implementation?
+Can it be expressed without depending on a concrete implementation?
 
- ### 5\. Composition
+### 5. Composition
 
- Can it be solved by composing existing concepts?
+Can it be solved by composing existing concepts?
 
- ### 6\. Semantics
+### 6. Semantics
 
- Does it represent a reality of the domain or an implementation need?
+Does it represent a reality of the domain or an implementation need?
 
- ### 7\. Reuse across Subjects
+### 7. Reuse across Subjects
 
- Can it be used with different types of `Subject`?
+Can it be used with different types of `Subject`?
 
- ### 8\. Identity Requirement
+### 8. Identity Requirement
 
- Does it need its own individual identity, or is its meaning fully determined by its values?
+Does it need its own individual identity, or is its meaning fully determined by its values?
 
- The absence of a clear identity need must prevent introducing an artificial Identifier.
+The absence of a clear identity need must prevent introducing an artificial Identifier.
 
 ---
 
- ## Architectural Principles
+## Architectural Principles
 
- 1. **`Subject`, `Identity`, `Account`, and Blockchain Address are different concepts.**
+1. **`Subject`, `Identity`, `Account`, and Blockchain Address are different concepts.**
 2. **External Identity and Authentication Mechanism are not automatically an `Identity`.**
 3. **`Subject` represents the semantic actor.**
 4. **`Identity` represents sovereign continuity.**
@@ -269,9 +269,9 @@ Scope
 
 ---
 
- ## Consolidated Conceptual Model
+## Consolidated Conceptual Model
 
-```
+```text
                          EXTERNAL WORLD
                                │
                  ┌─────────────┴─────────────┐
@@ -346,9 +346,9 @@ Scope
                           BLOCKCHAIN
 ```
 
- Transversal infrastructure:
+Transversal infrastructure:
 
-```
+```text
 Proof
 Verifier
 Authentication mechanisms
@@ -361,9 +361,9 @@ Blockchain Address representations
 
 ---
 
- ## Fundamental Distinction
+## Fundamental Distinction
 
-```
+```text
 SUBJECT
     =
 SEMANTIC ACTOR
@@ -428,9 +428,9 @@ ADAPTER
 INFRASTRUCTURE-SPECIFIC MATERIALIZATION
 ```
 
- And the fundamental separations:
+And the fundamental separations:
 
-```
+```text
 External Identity
     ≠
 Subject
@@ -442,9 +442,9 @@ Account
 Blockchain Address
 ```
 
- and:
+and:
 
-```
+```text
 Capability
     ≠
 Credential Authority
@@ -458,11 +458,11 @@ Execution
 
 ---
 
- ## Closed Domain Decisions
+## Closed Domain Decisions
 
- The following decisions about the nature of the concepts are established:
+The following decisions about the nature of the concepts are established:
 
-```
+```text
 Subject
     → Value Object
 
@@ -530,9 +530,9 @@ Execution
     → operational process, not Entity
 ```
 
- And the fundamental cardinalities:
+And the fundamental cardinalities:
 
-```
+```text
 Identity 1
     └── 0..N Accounts
 
@@ -548,11 +548,11 @@ Subject 1
 
 ---
 
- ## Rule for the Formalization
+## Rule for the Formalization
 
- The formal priority is:
+The formal priority is:
 
-```
+```text
 DDD semantic invariant
         ↓
 formal domain model
@@ -564,9 +564,9 @@ proof
 Rust / blockchain representation
 ```
 
- Never:
+Never:
 
-```
+```text
 Rust / EVM convenience
         ↓
 formal type
@@ -574,9 +574,9 @@ formal type
 DDD retrofitted afterwards
 ```
 
- When the formalization finds an ambiguity:
+When the formalization finds an ambiguity:
 
-```
+```text
 formalization ambiguity
       ↓
 DDD clarification
@@ -586,16 +586,16 @@ formal law
 proof
 ```
 
- An ambiguity of the domain must not be resolved simply by introducing a convenient structure in the formal model.
+An ambiguity of the domain must not be resolved simply by introducing a convenient structure in the formal model.
 
 ---
 
- ## Cross-References
+## Cross-References
 
- - Foundations — purpose, `Subject`, `Identity`, `Account`.
-- Authority Model — `Capability`, `Credential`, `CredentialAuthority`.
-- Authorization — `Authorization`, `Proof`, `Validation`.
-- Derived Authority — `Session`, `Delegation`, `EffectiveAuthority`.
-- State and Policy — `AuthorizationState`, `PolicyEffect`, `PolicyConsumption`.
-- Execution Model — `Runtime`, `ExecutionContext`, `Adapter`.
-- Formal Laws — `D1`–`D6`.
+- [Foundations](01-foundations.md) — purpose, `Subject`, `Identity`, `Account`.
+- [Authority Model](02-authority-model.md) — `Capability`, `Credential`, `CredentialAuthority`.
+- [Authorization](03-authorization.md) — `Authorization`, `Proof`, `Validation`.
+- [Derived Authority](04-derived-authority.md) — `Session`, `Delegation`, `EffectiveAuthority`.
+- [State and Policy](05-state-and-policy.md) — `AuthorizationState`, `PolicyEffect`, `PolicyConsumption`.
+- [Execution Model](06-execution-model.md) — `Runtime`, `ExecutionContext`, `Adapter`.
+- [Formal Laws](../formal-laws/index.md) — `D1`–`D6`.

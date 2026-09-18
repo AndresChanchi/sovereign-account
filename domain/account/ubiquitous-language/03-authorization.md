@@ -32,84 +32,84 @@ verification:
     - domain/account/formal/authorization/Replay.dfy
 ---
 
- # Authorization
+# Authorization
 
- > Original DDD sections: §15–§19, §42.
+> Original DDD sections: §15–§19, §42.
 
- This chapter defines how a request to exercise authority is represented, how cryptographic evidence attaches to it, and how its semantic value is distinguished from its evidence.
+This chapter defines how a request to exercise authority is represented, how cryptographic evidence attaches to it, and how its semantic value is distinguished from its evidence.
 
 ---
 
- ## Proof
+## Proof
 
- A **Proof** is cryptographic evidence used to demonstrate that an `Authorization` was produced through the corresponding `Credential`.
+A **Proof** is cryptographic evidence used to demonstrate that an `Authorization` was produced through the corresponding `Credential`.
 
- `Proof` belongs to cryptographic infrastructure.
+`Proof` belongs to cryptographic infrastructure.
 
- It does not define:
+It does not define:
 
- - `Identity`;
+- `Identity`;
 - `Capability`;
 - `Scope`;
 - `Authority`;
 - `Authorization` validity.
 
- ### Principle
+### Principle
 
- > **Proof validity is not authorization validity.**
+> **Proof validity is not authorization validity.**
 
 ---
 
- ## Verifier
+## Verifier
 
- A **Verifier** verifies a `Proof` using a specific cryptographic mechanism.
+A **Verifier** verifies a `Proof` using a specific cryptographic mechanism.
 
- It may use:
+It may use:
 
- - P-256;
+- P-256;
 - secp256k1;
 - BLS;
 - post-quantum cryptography;
 - other mechanisms.
 
- The `Verifier` determines:
+The `Verifier` determines:
 
- > **whether the evidence satisfies the cryptographic rules of its mechanism.**
+> **whether the evidence satisfies the cryptographic rules of its mechanism.**
 
- It does not determine:
+It does not determine:
 
- > **whether the exercise of authority is permitted.**
+> **whether the exercise of authority is permitted.**
 
 ---
 
- ## Requested Authority
+## Requested Authority
 
- **Requested Authority** represents the authority an `Authorization` attempts to exercise.
+**Requested Authority** represents the authority an `Authorization` attempts to exercise.
 
- It may include:
+It may include:
 
- - `Capability` instances;
+- `Capability` instances;
 - `Scope`;
 - `Restriction` instances;
 - temporal conditions;
 - context;
 - other relevant conditions.
 
- `RequestedAuthority` is a **Value Object**.
+`RequestedAuthority` is a **Value Object**.
 
- It does not grant authority.
+It does not grant authority.
 
- It represents only what an `Authorization` requests to exercise.
+It represents only what an `Authorization` requests to exercise.
 
 ---
 
- ## Authorization
+## Authorization
 
- An **Authorization** represents a verifiable request or evidence of an exercise of authority.
+An **Authorization** represents a verifiable request or evidence of an exercise of authority.
 
- It contains or references:
+It contains or references:
 
- - `Credential`;
+- `Credential`;
 - `RequestedAuthority`;
 - `Restriction` instances;
 - temporal conditions;
@@ -117,68 +117,68 @@ verification:
 - `Proof`;
 - **relevant Context (defined below)**.
 
- `Authorization` is a **Value Object**.
+`Authorization` is a **Value Object**.
 
- Two `Authorization` instances are equal when they have the same complete semantic value.
+Two `Authorization` instances are equal when they have the same complete semantic value.
 
- It does not need an `AuthorizationId`.
+It does not need an `AuthorizationId`.
 
- ### Authorization Context
+### Authorization Context
 
- The **Context** of an `Authorization` is the set of semantic elements that determine the scope and destination of the authorization.
+The **Context** of an `Authorization` is the set of semantic elements that determine the scope and destination of the authorization.
 
- It forms part of the semantic value of `Authorization` and therefore affects its equality.
+It forms part of the semantic value of `Authorization` and therefore affects its equality.
 
- It is composed of:
+It is composed of:
 
- - **`AccountId`**: the `Account` over which the authority is exercised.
+- **`AccountId`**: the `Account` over which the authority is exercised.
 - **`ExecutionTarget`**: the technical destination of the execution (e.g. contract, resource, service).
 - **`DomainAction`**: the business action requested (defined by the consumer).
 - **`Scope`**: the domain of the action (may be the same as the `Capability` `Scope` or a more restrictive one).
 - **`Chain`**: identifier of the blockchain environment (if applicable), which allows distinguishing between different environments or networks.
 
- **Principle:**\
- The Context is part of the authorized intent. Two `Authorization` instances with identical attributes but different Context represent different requests and are not equal.
+**Principle:**  
+The Context is part of the authorized intent. Two `Authorization` instances with identical attributes but different Context represent different requests and are not equal.
 
- **Example:**\
- `Authorization A`: `Credential X, RequestedAuthority Upload, Scope Album123, Account A, ExecutionTarget Contract1, DomainAction UploadPhoto`\
- `Authorization B`: same `Credential` and `RequestedAuthority`, but `ExecutionTarget Contract2`. A and B are semantically different.
+**Example:**  
+`Authorization A`: `Credential X, RequestedAuthority Upload, Scope Album123, Account A, ExecutionTarget Contract1, DomainAction UploadPhoto`  
+`Authorization B`: same `Credential` and `RequestedAuthority`, but `ExecutionTarget Contract2`. A and B are semantically different.
 
- ### Main rule
+### Main rule
 
- An `Authorization` may be accepted only when:
+An `Authorization` may be accepted only when:
 
-```
+```text
 Requested Authority
     ⊆
 Effective Authority
 ```
 
- and the other `AuthorizationValidation` conditions are satisfied (including the validity of the Context relative to the state of the `Account`).
+and the other `AuthorizationValidation` conditions are satisfied (including the validity of the Context relative to the state of the `Account`).
 
- Therefore:
+Therefore:
 
-```
+```text
 Valid Proof
     ≠
 Valid Authorization
 ```
 
- ### Replay
+### Replay
 
- `replayKey` or any equivalent mechanism is part of `ReplayProtection`.
+`replayKey` or any equivalent mechanism is part of `ReplayProtection`.
 
- It must not be automatically confused with an Entity identity.
+It must not be automatically confused with an Entity identity.
 
 ---
 
- ## Authorization Validation
+## Authorization Validation
 
- **Authorization Validation** determines whether an `Authorization` may be accepted by an `Account` in a given state and context.
+**Authorization Validation** determines whether an `Authorization` may be accepted by an `Account` in a given state and context.
 
- It must consider:
+It must consider:
 
- 1. recognized `Credential`;
+1. recognized `Credential`;
 2. valid `Proof`;
 3. compatible `CredentialAuthority`;
 4. existing `Capability` instances;
@@ -191,21 +191,21 @@ Valid Authorization
 11. `ReplayProtection`;
 12. **Context** (compatible with the `Account` and the `ExecutionTarget`, among others).
 
- ### Principle
+### Principle
 
- > **Proof Verification validates cryptographic evidence; Authorization Validation determines domain authority.**
+> **Proof Verification validates cryptographic evidence; Authorization Validation determines domain authority.**
 
- Validation of authority may be distributed across different bounded contexts or modules.
+Validation of authority may be distributed across different bounded contexts or modules.
 
 ---
 
- ## Replay Protection
+## Replay Protection
 
- **Replay Protection** ensures that an `Authorization` or `Execution` cannot be reused outside the conditions for which it was created.
+**Replay Protection** ensures that an `Authorization` or `Execution` cannot be reused outside the conditions for which it was created.
 
- It may depend on:
+It may depend on:
 
- - replay keys;
+- replay keys;
 - nonces;
 - sequence numbers;
 - expiration;
@@ -214,20 +214,20 @@ Valid Authorization
 - temporality;
 - other mechanisms.
 
- The domain requires:
+The domain requires:
 
- > **A valid `Authorization` in one context must not automatically become a valid `Authorization` in a later or different context when its original conditions no longer hold.**
+> **A valid `Authorization` in one context must not automatically become a valid `Authorization` in a later or different context when its original conditions no longer hold.**
 
- `Replay Protection` does not imply the existence of an `Authorization` Entity.
+`Replay Protection` does not imply the existence of an `Authorization` Entity.
 
- Its operational state may belong to `AuthorizationState` or to a specific replay state.
+Its operational state may belong to `AuthorizationState` or to a specific replay state.
 
 ---
 
- ## Cross-References
+## Cross-References
 
- - Foundations — `Identity`, `Account`, and sovereignty.
-- Authority Model — `Credential` and `CredentialAuthority`.
-- Derived Authority — `EffectiveAuthority` and derived mechanisms.
-- Execution Model — how an accepted `Authorization` participates in `ExecutionContext`.
-- Formal Laws — D4 — semantic value of `Authorization`, exclusion of `Proof`.
+- [Foundations](01-foundations.md) — `Identity`, `Account`, and sovereignty.
+- [Authority Model](02-authority-model.md) — `Credential` and `CredentialAuthority`.
+- [Derived Authority](04-derived-authority.md) — `EffectiveAuthority` and derived mechanisms.
+- [Execution Model](06-execution-model.md) — how an accepted `Authorization` participates in `ExecutionContext`.
+- [Formal Laws — D4](../formal-laws/D4-proof-and-authorization-equality.md) — semantic value of `Authorization`, exclusion of `Proof`.
