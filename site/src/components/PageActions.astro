@@ -126,6 +126,7 @@ Please fetch the source and explain the concepts, invariants and any relevant co
       const closeAll = () => {
         allMenus.forEach((m) => m.setAttribute('hidden', ''));
         allToggles.forEach((t) => t.setAttribute('aria-expanded', 'false'));
+        document.documentElement.removeAttribute('data-dropdown-open');
       };
 
       if (toggle) {
@@ -139,6 +140,7 @@ Please fetch the source and explain the concepts, invariants and any relevant co
         if (!wasOpen) {
           menu.removeAttribute('hidden');
           toggle.setAttribute('aria-expanded', 'true');
+          document.documentElement.setAttribute('data-dropdown-open', 'true');
         }
         return;
       }
@@ -150,6 +152,7 @@ Please fetch the source and explain the concepts, invariants and any relevant co
       if (e.key === 'Escape') {
         document.querySelectorAll('[data-dropdown-menu]').forEach((m) => m.setAttribute('hidden', ''));
         document.querySelectorAll('[data-dropdown-toggle]').forEach((t) => t.setAttribute('aria-expanded', 'false'));
+        document.documentElement.removeAttribute('data-dropdown-open');
       }
     });
   }

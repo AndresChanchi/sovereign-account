@@ -14,19 +14,20 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
 
 {filtered.length > 0 && (
-  <nav class="text-xs" aria-label="On this page">
+  <nav class="toc-nav text-xs" aria-label="On this page" data-toc-nav>
     <p class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
       On this page
     </p>
-    <ul class="space-y-1 border-l border-border">
+    <ul class="toc-list space-y-0.5 border-l border-border">
       {filtered.map((h) => (
         <li>
           <a
             href={`#${h.slug}`}
+            data-toc-link
+            data-toc-slug={h.slug}
             class:list={[
-              'block py-1 transition-colors',
-              h.depth === 2 ? 'pl-3' : 'pl-5 text-text-muted',
-              'text-text-muted hover:text-primary',
+              'toc-link block py-1 transition-colors',
+              h.depth === 2 ? 'pl-3' : 'pl-5',
             ]}
           >
             {h.text}
@@ -36,3 +37,76 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
     </ul>
   </nav>
 )}
+
+<script>
+  function setup() {
+    const nav = document.querySelector('[data-toc-nav]') as HTMLElement | null;
+    if (!nav) return;
+
+    const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
+    if (links.length === 0) return;
+
+    const slugToLink = new Map<string, HTMLAnchorElement>();
+    for (const link of links) {
+      const slug = link.dataset.tocSlug;
+      if (slug) slugToLink.set(slug, link);
+    }
+
+    const headings = links
+      .map((link) => {
+        const slug = link.dataset.tocSlug;
+        if (!slug) return null;
+        const el = document.getElementById(slug);
+        return el ? { slug, el } : null;
+      })
+      .filter((x): x is { slug: string; el: HTMLElement } => x !== null);
+
+    if (headings.length === 0) return;
+
+    let activeSlug: string | null = null;
+
+    function setActive(slug: string) {
+      if (activeSlug === slug) return;
+      activeSlug = slug;
+      for (const link of links) {
+        if (link.dataset.tocSlug === slug) {
+          link.dataset.active = 'true';
+        } else {
+          delete link.dataset.active;
+        }
+      }
+    }
+
+    function computeActive() {
+      const scrollY = window.scrollY;
+      const viewportAnchor = scrollY + window.innerHeight * 0.25;
+
+      let candidate = headings[0].slug;
+      for (const h of headings) {
+        if (h.el.offsetTop <= viewportAnchor) candidate = h.slug;
+        else break;
+      }
+      setActive(candidate);
+    }
+
+    let scheduled = false;
+    function onScroll() {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        computeActive();
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    computeActive();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
+</script>

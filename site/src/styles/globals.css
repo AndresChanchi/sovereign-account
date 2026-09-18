@@ -9,34 +9,26 @@
    2. Design Tokens: Midnight Emerald
    ───────────────────────────────────────────── */
 @theme {
-  /* Brand */
   --color-primary: #10b981;
   --color-primary-soft: #34d399;
   --color-accent: #8b5cf6;
 
-  /* Surfaces (light) */
   --color-background: #ffffff;
   --color-surface: #f8fafc;
   --color-surface-raised: #ffffff;
   --color-border: #e2e8f0;
 
-  /* Text (light) */
   --color-text: #0f172a;
-  --color-text-muted: #64748b;
+  --color-text-muted: #475569;
 
-  /* Typography */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Layout */
   --spacing-sidebar: 17rem;
   --spacing-toc: 15rem;
   --max-width-prose: 72ch;
 }
 
-/* ─────────────────────────────────────────────
-   3. Dark mode overrides
-   ───────────────────────────────────────────── */
 .dark {
   --color-background: #020617;
   --color-surface: #0f172a;
@@ -48,7 +40,7 @@
 }
 
 /* ─────────────────────────────────────────────
-   4. Base
+   3. Base
    ───────────────────────────────────────────── */
 @layer base {
   html {
@@ -56,6 +48,7 @@
     background-color: var(--color-background);
     color: var(--color-text);
     scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
   }
 
   html.dark {
@@ -64,30 +57,55 @@
 
   body {
     font-family: var(--font-sans);
-    line-height: 1.6;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.011em;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   code, pre, kbd, samp {
     font-family: var(--font-mono);
+    letter-spacing: 0;
   }
 
   ::selection {
     background-color: color-mix(in oklab, var(--color-primary) 30%, transparent);
   }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  a:focus:not(:focus-visible),
+  button:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─────────────────────────────────────────────
-   5. Prose overrides for markdown content
+   4. Prose overrides for markdown content
    ───────────────────────────────────────────── */
 @plugin "@tailwindcss/typography";
 
 @utility prose-docs {
   max-width: var(--max-width-prose);
 
-  /* Map all prose variables to design tokens.
-     Since tokens switch on .dark, no prose-invert is needed. */
   --tw-prose-body: var(--color-text);
   --tw-prose-headings: var(--color-text);
   --tw-prose-lead: var(--color-text-muted);
@@ -107,7 +125,7 @@
 }
 
 /* ─────────────────────────────────────────────
-   6. Custom utilities
+   5. Custom utilities
    ───────────────────────────────────────────── */
 @utility container-page {
   width: 100%;
@@ -193,7 +211,7 @@
 }
 
 /* ─────────────────────────────────────────────
-   7. Mobile drawer
+   6. Mobile drawer
    ───────────────────────────────────────────── */
 @utility mobile-drawer {
   position: fixed;
@@ -235,5 +253,118 @@
 
   [data-open="true"] & {
     transform: translateX(0);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   7. Skip link
+   ───────────────────────────────────────────── */
+@layer components {
+  .skip-link {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    padding: 0.5rem 1rem;
+    background-color: var(--color-primary);
+    color: #020617;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0 0 0.5rem 0.5rem;
+    z-index: 100;
+    transition: transform 150ms ease-out;
+  }
+
+  .skip-link:focus-visible,
+  .skip-link:focus {
+    transform: translate(-50%, 0);
+    outline: none;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   8. TOC active state
+   ───────────────────────────────────────────── */
+.toc-list {
+  position: relative;
+}
+
+.toc-link {
+  position: relative;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-inline-start: 2px solid transparent;
+  margin-inline-start: -1px;
+  padding-inline-start: 0.75rem;
+}
+
+.toc-link[data-active="true"] {
+  color: var(--color-primary);
+  font-weight: 500;
+  border-inline-start-color: var(--color-primary);
+}
+
+.toc-link:hover {
+  color: var(--color-text);
+}
+
+/* ─────────────────────────────────────────────
+   9. Reading progress bar
+   ───────────────────────────────────────────── */
+.reading-progress {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 3px;
+  background-color: transparent;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.reading-progress-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background-color: var(--color-primary);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 80ms linear;
+}
+
+/* ─────────────────────────────────────────────
+   10. Responsive dropdown (mobile bottom sheet)
+   ───────────────────────────────────────────── */
+@media (max-width: 639px) {
+  .dropdown-menu {
+    position: fixed;
+    inset-inline: 0.5rem;
+    inset-block-end: 0.5rem;
+    inset-block-start: auto;
+    min-width: 0;
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    z-index: 70;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .dropdown-menu:not([hidden]) {
+    animation: sheet-up 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dropdown-item {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9375rem;
+    border-radius: 0.5rem;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

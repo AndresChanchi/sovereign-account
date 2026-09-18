@@ -40,6 +40,8 @@ const hasToc = headings.length > 0;
     </script>
   </head>
   <body class="bg-background text-text">
+    <a href="#content" class="skip-link">Skip to content</a>
+
     <header class="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
       <div class="container-page flex h-14 items-center justify-between gap-4">
         <div class="flex items-center gap-2">
@@ -79,7 +81,6 @@ const hasToc = headings.length > 0;
       </div>
     </header>
 
-    <!-- Mobile drawer -->
     <div id="mobile-drawer" class="mobile-drawer" aria-hidden="true">
       <div class="mobile-drawer-backdrop" data-drawer-close></div>
       <aside class="mobile-drawer-panel" aria-label="Mobile navigation">
@@ -110,7 +111,6 @@ const hasToc = headings.length > 0;
       </aside>
     </div>
 
-    <!-- Desktop layout -->
     <div class="container-page grid grid-cols-1 lg:grid-cols-[var(--spacing-sidebar)_1fr_var(--spacing-toc)] gap-8 py-8">
       <aside class="hidden lg:block">
         <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2">
@@ -118,7 +118,7 @@ const hasToc = headings.length > 0;
         </div>
       </aside>
 
-      <main class="min-w-0">
+      <main id="content" class="min-w-0">
         <slot />
       </main>
 
@@ -129,47 +129,73 @@ const hasToc = headings.length > 0;
       </aside>
     </div>
 
+    <div class="reading-progress" aria-hidden="true">
+      <span class="reading-progress-fill" data-reading-progress></span>
+    </div>
+
     <script is:inline>
       (function () {
         var toggle = document.getElementById('mobile-menu-toggle');
         var drawer = document.getElementById('mobile-drawer');
-        if (!toggle || !drawer) return;
-
-        function open() {
-          drawer.setAttribute('data-open', 'true');
-          drawer.setAttribute('aria-hidden', 'false');
-          toggle.setAttribute('aria-expanded', 'true');
-          document.body.style.overflow = 'hidden';
+        if (toggle && drawer) {
+          function open() {
+            drawer.setAttribute('data-open', 'true');
+            drawer.setAttribute('aria-hidden', 'false');
+            toggle.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+          }
+          function close() {
+            drawer.setAttribute('data-open', 'false');
+            drawer.setAttribute('aria-hidden', 'true');
+            toggle.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+          }
+          toggle.addEventListener('click', function () {
+            if (drawer.getAttribute('data-open') === 'true') close();
+            else open();
+          });
+          drawer.querySelectorAll('[data-drawer-close]').forEach(function (el) {
+            el.addEventListener('click', close);
+          });
+          drawer.addEventListener('click', function (e) {
+            var t = e.target;
+            if (t && t.closest && t.closest('a')) close();
+          });
+          document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && drawer.getAttribute('data-open') === 'true') close();
+          });
+          window.addEventListener('resize', function () {
+            if (window.innerWidth >= 1024 && drawer.getAttribute('data-open') === 'true') close();
+          });
         }
 
-        function close() {
-          drawer.setAttribute('data-open', 'false');
-          drawer.setAttribute('aria-hidden', 'true');
-          toggle.setAttribute('aria-expanded', 'false');
-          document.body.style.overflow = '';
+        var fill = document.querySelector('[data-reading-progress]');
+        if (fill) {
+          var scheduled = false;
+          function compute() {
+            var article = document.querySelector('main article');
+            if (!article) return;
+            var rect = article.getBoundingClientRect();
+            var top = rect.top + window.scrollY;
+            var height = rect.height;
+            var viewport = window.innerHeight;
+            var scrolled = window.scrollY - top;
+            var total = Math.max(height - viewport * 0.5, 1);
+            var ratio = Math.max(0, Math.min(1, scrolled / total));
+            fill.style.transform = 'scaleX(' + ratio + ')';
+          }
+          function onScroll() {
+            if (scheduled) return;
+            scheduled = true;
+            requestAnimationFrame(function () {
+              scheduled = false;
+              compute();
+            });
+          }
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.addEventListener('resize', onScroll);
+          compute();
         }
-
-        toggle.addEventListener('click', function () {
-          if (drawer.getAttribute('data-open') === 'true') close();
-          else open();
-        });
-
-        drawer.querySelectorAll('[data-drawer-close]').forEach(function (el) {
-          el.addEventListener('click', close);
-        });
-
-        drawer.addEventListener('click', function (e) {
-          var t = e.target;
-          if (t && t.closest && t.closest('a')) close();
-        });
-
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape' && drawer.getAttribute('data-open') === 'true') close();
-        });
-
-        window.addEventListener('resize', function () {
-          if (window.innerWidth >= 1024 && drawer.getAttribute('data-open') === 'true') close();
-        });
       })();
     </script>
   </body>
