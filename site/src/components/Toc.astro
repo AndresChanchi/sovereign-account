@@ -46,12 +46,6 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
     const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
     if (links.length === 0) return;
 
-    const slugToLink = new Map<string, HTMLAnchorElement>();
-    for (const link of links) {
-      const slug = link.dataset.tocSlug;
-      if (slug) slugToLink.set(slug, link);
-    }
-
     const headings = links
       .map((link) => {
         const slug = link.dataset.tocSlug;

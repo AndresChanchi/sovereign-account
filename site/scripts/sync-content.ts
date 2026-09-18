@@ -22,8 +22,21 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
-function rewriteLinks(content: string, currentChapter: Chapter): string {
-  return content.replace(
+function pageUrl(chapter: Chapter, slug: string): string {
+  if (slug === 'index') return `/${chapter}/`;
+  return `/${chapter}/${slug}/`;
+}
+
+function rewriteLinks(content: string, currentChapter: Chapter, currentSlug: string): string {
+  const currentBase = pageUrl(currentChapter, currentSlug);
+
+  // Pass 1: pure fragment links (#anchor) → absolute paths so <base> doesn't break them.
+  let out = content.replace(/\]\(#([^)\s]+)\)/g, (_match, anchor: string) => {
+    return `](${currentBase}#${anchor})`;
+  });
+
+  // Pass 2: .md links (with or without fragment) → absolute lowercase routes.
+  out = out.replace(
     /\]\(([^)\s]+?\.md)(#[^)\s]*)?\)/g,
     (match, rawPath: string, hash?: string) => {
       const stripped = rawPath.replace(/\.md$/, '');
@@ -41,7 +54,6 @@ function rewriteLinks(content: string, currentChapter: Chapter): string {
           const chapter = crossMatch[1].toLowerCase();
           const slug = crossMatch[2].toLowerCase();
           if (slug === 'index') {
-            // index.md maps to the chapter's landing route
             target = `/${chapter}`;
           } else {
             target = `/${chapter}/${slug}`;
@@ -57,11 +69,12 @@ function rewriteLinks(content: string, currentChapter: Chapter): string {
 
       if (!target) return match;
 
-      // Ensure trailing slash for directory-format resolution on the CDN.
       const finalUrl = target.endsWith('/') ? target : `${target}/`;
       return `](${finalUrl}${hashPart})`;
     },
   );
+
+  return out;
 }
 
 interface ChapterFile {
@@ -78,10 +91,11 @@ async function readChapter(chapter: Chapter): Promise<ChapterFile[]> {
     if (!entry.isFile()) continue;
     if (!entry.name.endsWith('.md')) continue;
 
+    const slug = entry.name.replace(/\.md$/, '').toLowerCase();
     const raw = await readFile(join(src, entry.name), 'utf-8');
     files.push({
       name: entry.name.toLowerCase(),
-      content: rewriteLinks(raw, chapter),
+      content: rewriteLinks(raw, chapter, slug),
     });
   }
 

@@ -13,18 +13,42 @@ const MANIFEST_FILE = join(PROJECT_ROOT, 'deploy-manifest.json');
 
 type Network = 'devnet' | 'mainnet';
 
-function parseArgs(): { network: Network; dryRun: boolean } {
+interface DeployOptions {
+  network: Network;
+  dryRun: boolean;
+  mutable: boolean;
+}
+
+interface ManifestEntry {
+  network: Network;
+  manifestId: string;
+  gateway: string;
+  isMutableRoot: boolean;
+  mutableRootId?: string;
+  mutableGateway?: string;
+  timestamp: string;
+  sizeBytes: number;
+}
+
+interface ManifestFile {
+  latest: ManifestEntry | null;
+  history: ManifestEntry[];
+}
+
+function parseArgs(): DeployOptions {
   const args = process.argv.slice(2);
   let network: Network = 'devnet';
   let dryRun = false;
+  let mutable = false;
 
   for (const arg of args) {
     if (arg === '--mainnet' || arg === '--network=mainnet') network = 'mainnet';
     if (arg === '--devnet' || arg === '--testnet' || arg === '--network=devnet') network = 'devnet';
     if (arg === '--dry-run') dryRun = true;
+    if (arg === '--mutable') mutable = true;
   }
 
-  return { network, dryRun };
+  return { network, dryRun, mutable };
 }
 
 function loadEnv(network: Network) {
@@ -68,21 +92,21 @@ function fmt(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
 }
 
-async function readPreviousManifest(): Promise<Record<string, unknown> | null> {
+async function readManifest(): Promise<ManifestFile> {
   try {
-    return JSON.parse(await readFile(MANIFEST_FILE, 'utf-8'));
+    const raw = await readFile(MANIFEST_FILE, 'utf-8');
+    return JSON.parse(raw) as ManifestFile;
   } catch {
-    return null;
+    return { latest: null, history: [] };
   }
+}
+
+async function writeManifest(manifest: ManifestFile): Promise<void> {
+  await writeFile(MANIFEST_FILE, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
 }
 
 const FUND_HEADROOM = ethers.parseEther('0.0005');
 
-/**
- * Attempts to fund the Irys account with progressive fee multipliers.
- * Arbitrum Sepolia baseFee fluctuates per block; the SDK computes maxFeePerGas
- * without headroom, so a race is possible. Each retry increases the multiplier.
- */
 async function fundWithRetry(
   irys: Awaited<ReturnType<ReturnType<typeof Uploader>['withWallet']>>,
   amount: bigint,
@@ -105,28 +129,40 @@ async function fundWithRetry(
         console.log(`  Race detected at multiplier ${multiplier}, retrying...`);
         continue;
       }
-      // Unknown error, don't retry
       throw err;
     }
   }
 
   throw new Error(
-    `Funding failed after ${multipliers.length} attempts. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    `Funding failed after ${multipliers.length} attempts. Last error: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
   );
 }
 
 async function main() {
-  const { network, dryRun } = parseArgs();
+  const { network, dryRun, mutable } = parseArgs();
   const { pk, rpc } = loadEnv(network);
 
   const wallet = new ethers.Wallet(pk);
   const size = await dirSize(DIST);
+  const previous = await readManifest();
+
+  const previousRootId =
+    previous.latest?.network === network ? previous.latest.mutableRootId : undefined;
+  const willCreateRoot = mutable && !previousRootId;
 
   console.log(`\n─── Irys Deploy ───`);
-  console.log(`  Network     ${network}`);
-  console.log(`  Wallet      ${wallet.address}`);
-  console.log(`  RPC         ${rpc}`);
-  console.log(`  Dist size   ${fmt(size)}`);
+  console.log(`  Network      ${network}`);
+  console.log(`  Wallet       ${wallet.address}`);
+  console.log(`  RPC          ${rpc}`);
+  console.log(`  Dist size    ${fmt(size)}`);
+  console.log(
+    `  Mode         ${mutable ? (willCreateRoot ? 'mutable (new root)' : 'mutable (update)') : 'immutable'}`,
+  );
+  if (mutable && previousRootId) {
+    console.log(`  Mutable root ${previousRootId}`);
+  }
 
   const builder = Uploader(Arbitrum).withWallet(pk).withRpc(rpc);
   const irys = network === 'devnet' ? await builder.devnet() : await builder;
@@ -142,9 +178,9 @@ async function main() {
   const irysAtomic = toBigInt(irysBal);
   const costAtomic = toBigInt(price);
 
-  console.log(`\n  Wallet ETH  ${formatEth(walletAtomic)}`);
-  console.log(`  Irys credit ${formatEth(irysAtomic)}`);
-  console.log(`  Est. cost   ${formatEth(costAtomic)}`);
+  console.log(`\n  Wallet ETH   ${formatEth(walletAtomic)}`);
+  console.log(`  Irys credit  ${formatEth(irysAtomic)}`);
+  console.log(`  Est. cost    ${formatEth(costAtomic)}`);
 
   if (dryRun) {
     console.log(`\n[dry-run] Aborting before upload.`);
@@ -156,7 +192,6 @@ async function main() {
     const fundAmount = gap + FUND_HEADROOM;
 
     console.log(`\n  Funding Irys account with ${formatEth(fundAmount)} ETH...`);
-
     const fundReceipt = await fundWithRetry(irys, fundAmount);
     console.log(`  Funded: ${fundReceipt.id}`);
 
@@ -168,41 +203,55 @@ async function main() {
     console.log();
   }
 
+  const manifestTags = mutable && previousRootId
+    ? [{ name: 'Root-TX', value: previousRootId }]
+    : [];
+
   console.log(`\n  Uploading dist/...`);
   const start = Date.now();
   const receipt = await irys.uploadFolder(DIST, {
     indexFile: 'index.html',
     batchSize: 50,
+    ...(manifestTags.length > 0 ? { manifestTags } : {}),
   });
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
   const manifestId = receipt.id;
   const gateway = `https://gateway.irys.xyz/${manifestId}/`;
+  const mutableRootId = mutable ? (previousRootId ?? manifestId) : undefined;
+  const mutableGateway = mutableRootId
+    ? `https://gateway.irys.xyz/mutable/${mutableRootId}/`
+    : undefined;
 
   console.log(`\n  Uploaded in ${elapsed}s`);
   console.log(`  Manifest ID  ${manifestId}`);
   console.log(`  Gateway      ${gateway}`);
-  console.log(`\n  Verify:`);
-  console.log(`    curl -sI ${gateway}`);
-  console.log(`    curl -s  ${gateway}llms.txt | head`);
+  if (mutable) {
+    console.log(`  Mutable root ${mutableRootId}${willCreateRoot ? ' (created)' : ''}`);
+    console.log(`  Mutable URL  ${mutableGateway}`);
+  }
 
-  const previous = (await readPreviousManifest()) as { history?: unknown[] } | null;
-  const history = previous?.history ?? [];
-  history.push({
+  const entry: ManifestEntry = {
     network,
     manifestId,
     gateway,
+    isMutableRoot: willCreateRoot,
+    ...(mutable ? { mutableRootId, mutableGateway } : {}),
     timestamp: new Date().toISOString(),
     sizeBytes: size,
-  });
+  };
 
-  await writeFile(
-    MANIFEST_FILE,
-    JSON.stringify({ latest: { network, manifestId, gateway }, history }, null, 2) + '\n',
-    'utf-8',
-  );
+  previous.history.push(entry);
+  previous.latest = entry;
+  await writeManifest(previous);
 
   console.log(`\n  Manifest recorded in ${MANIFEST_FILE}`);
+  if (mutable) {
+    console.log(`\n  Next update:`);
+    console.log(`    bun run deploy:${network}:mutable`);
+    console.log(`  Resolves to latest:`);
+    console.log(`    ${mutableGateway}`);
+  }
 }
 
 main().catch((err) => {
