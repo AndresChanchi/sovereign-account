@@ -1,6 +1,8 @@
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 import { unified } from '@astrojs/markdown-remark';
+import { rehypeArchitecture } from './src/markdown/rehype-architecture.ts';
+import { rehypeResponsiveTables } from './src/markdown/rehype-responsive-tables.ts';
 
 function remarkStripLeadingH1() {
   return (tree) => {
@@ -25,6 +27,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [remarkStripLeadingH1],
+      rehypePlugins: [rehypeArchitecture, rehypeResponsiveTables],
     }),
     shikiConfig: { theme: 'github-dark' },
   },
