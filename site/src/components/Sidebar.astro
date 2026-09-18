@@ -12,7 +12,7 @@ const laws = (await getCollection('formal-laws'))
 const currentPath = Astro.url.pathname;
 
 function isActive(href: string) {
-  return currentPath === href || currentPath === `${href}/`;
+  return currentPath === href || currentPath === href.replace(/\/$/, '') || currentPath === `${href}`;
 }
 ---
 
@@ -23,7 +23,7 @@ function isActive(href: string) {
     </p>
     <ul class="space-y-0.5">
       {ul.map((entry) => {
-        const href = `/ubiquitous-language/${entry.id}`;
+        const href = `/ubiquitous-language/${entry.id}/`;
         const active = isActive(href);
         return (
           <li>
@@ -51,7 +51,7 @@ function isActive(href: string) {
     </p>
     <ul class="space-y-0.5">
       {laws.map((entry) => {
-        const href = `/formal-laws/${entry.id}`;
+        const href = `/formal-laws/${entry.id}/`;
         const active = isActive(href);
         return (
           <li>
