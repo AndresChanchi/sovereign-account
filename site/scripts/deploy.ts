@@ -23,9 +23,9 @@ interface ManifestEntry {
   network: Network;
   manifestId: string;
   gateway: string;
-  isMutableRoot: boolean;
-  mutableRootId?: string;
-  mutableGateway?: string;
+  folderRootId?: string;
+  redirectRootId?: string;
+  redirectGateway?: string;
   timestamp: string;
   sizeBytes: number;
 }
@@ -140,6 +140,43 @@ async function fundWithRetry(
   );
 }
 
+function buildRedirectHtml(manifestId: string): string {
+  const target = `https://gateway.irys.xyz/${manifestId}/`;
+  const jsonTarget = JSON.stringify(target);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redirecting — Sovereign Account</title>
+<link rel="canonical" href="${target}">
+<style>
+  html { color-scheme: light dark; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; margin: 0; padding: 2rem;
+    background: #020617; color: #f1f5f9;
+    text-align: center;
+  }
+  a { color: #10b981; }
+  p { max-width: 32rem; line-height: 1.6; }
+  code { font-family: ui-monospace, monospace; font-size: 0.875em; }
+</style>
+<script>
+  window.location.replace(${jsonTarget});
+</script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=${target}">
+</noscript>
+</head>
+<body>
+<p>Redirecting to the latest version…<br><a href="${target}"><code>${target}</code></a></p>
+</body>
+</html>`;
+}
+
 async function main() {
   const { network, dryRun, mutable } = parseArgs();
   const { pk, rpc } = loadEnv(network);
@@ -148,20 +185,24 @@ async function main() {
   const size = await dirSize(DIST);
   const previous = await readManifest();
 
-  const previousRootId =
-    previous.latest?.network === network ? previous.latest.mutableRootId : undefined;
-  const willCreateRoot = mutable && !previousRootId;
+  const prevEntry =
+    previous.latest?.network === network ? previous.latest : null;
+  const folderRootId = prevEntry?.folderRootId;
+  const redirectRootId = prevEntry?.redirectRootId;
+  const willCreateFolderRoot = mutable && !folderRootId;
+  const willCreateRedirectRoot = mutable && !redirectRootId;
 
   console.log(`\n─── Irys Deploy ───`);
   console.log(`  Network      ${network}`);
   console.log(`  Wallet       ${wallet.address}`);
   console.log(`  RPC          ${rpc}`);
   console.log(`  Dist size    ${fmt(size)}`);
-  console.log(
-    `  Mode         ${mutable ? (willCreateRoot ? 'mutable (new root)' : 'mutable (update)') : 'immutable'}`,
-  );
-  if (mutable && previousRootId) {
-    console.log(`  Mutable root ${previousRootId}`);
+  console.log(`  Mode         ${mutable ? 'mutable' : 'immutable'}`);
+  if (mutable && folderRootId) {
+    console.log(`  Folder root  ${folderRootId}`);
+  }
+  if (mutable && redirectRootId) {
+    console.log(`  Redirect root ${redirectRootId}`);
   }
 
   const builder = Uploader(Arbitrum).withWallet(pk).withRpc(rpc);
@@ -203,40 +244,65 @@ async function main() {
     console.log();
   }
 
-  const manifestTags = mutable && previousRootId
-    ? [{ name: 'Root-TX', value: previousRootId }]
-    : [];
+  // ── 1. Upload the folder ──
+  const folderManifestTags =
+    mutable && folderRootId ? [{ name: 'Root-TX', value: folderRootId }] : [];
 
   console.log(`\n  Uploading dist/...`);
   const start = Date.now();
-  const receipt = await irys.uploadFolder(DIST, {
+  const folderReceipt = await irys.uploadFolder(DIST, {
     indexFile: 'index.html',
     batchSize: 50,
-    ...(manifestTags.length > 0 ? { manifestTags } : {}),
+    ...(folderManifestTags.length > 0 ? { manifestTags: folderManifestTags } : {}),
   });
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
 
-  const manifestId = receipt.id;
+  const manifestId = folderReceipt.id;
   const gateway = `https://gateway.irys.xyz/${manifestId}/`;
-  const mutableRootId = mutable ? (previousRootId ?? manifestId) : undefined;
-  const mutableGateway = mutableRootId
-    ? `https://gateway.irys.xyz/mutable/${mutableRootId}/`
-    : undefined;
 
-  console.log(`\n  Uploaded in ${elapsed}s`);
+  console.log(`  Uploaded in ${elapsed}s`);
   console.log(`  Manifest ID  ${manifestId}`);
   console.log(`  Gateway      ${gateway}`);
+
+  // ── 2. Upload the redirect (mutable only) ──
+  let newFolderRootId: string | undefined;
+  let newRedirectRootId: string | undefined;
+  let redirectGateway: string | undefined;
+
   if (mutable) {
-    console.log(`  Mutable root ${mutableRootId}${willCreateRoot ? ' (created)' : ''}`);
-    console.log(`  Mutable URL  ${mutableGateway}`);
+    newFolderRootId = folderRootId ?? manifestId;
+
+    const redirectHtml = buildRedirectHtml(manifestId);
+    const redirectTags = [
+      { name: 'Content-Type', value: 'text/html' },
+      ...(redirectRootId ? [{ name: 'Root-TX', value: redirectRootId }] : []),
+    ];
+
+    console.log(`\n  Uploading redirect...`);
+    const redirectReceipt = await irys.upload(redirectHtml, { tags: redirectTags });
+
+    newRedirectRootId = redirectRootId ?? redirectReceipt.id;
+    redirectGateway = `https://gateway.irys.xyz/mutable/${newRedirectRootId}/`;
+
+    console.log(`  Redirect TX  ${redirectReceipt.id}`);
+    console.log(
+      `  Redirect root ${newRedirectRootId}${willCreateRedirectRoot ? ' (created)' : ''}`,
+    );
+    console.log(`  Redirect URL ${redirectGateway}`);
   }
 
+  // ── 3. Persist manifest ──
   const entry: ManifestEntry = {
     network,
     manifestId,
     gateway,
-    isMutableRoot: willCreateRoot,
-    ...(mutable ? { mutableRootId, mutableGateway } : {}),
+    ...(mutable
+      ? {
+          folderRootId: newFolderRootId,
+          redirectRootId: newRedirectRootId,
+          redirectGateway,
+        }
+      : {}),
     timestamp: new Date().toISOString(),
     sizeBytes: size,
   };
@@ -246,11 +312,14 @@ async function main() {
   await writeManifest(previous);
 
   console.log(`\n  Manifest recorded in ${MANIFEST_FILE}`);
+
   if (mutable) {
+    console.log(`\n  Public URL (stable):`);
+    console.log(`    ${redirectGateway}`);
+    console.log(`  Content URL (per deploy):`);
+    console.log(`    ${gateway}`);
     console.log(`\n  Next update:`);
     console.log(`    bun run deploy:${network}:mutable`);
-    console.log(`  Resolves to latest:`);
-    console.log(`    ${mutableGateway}`);
   }
 }
 
