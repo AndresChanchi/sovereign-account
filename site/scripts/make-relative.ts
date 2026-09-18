@@ -2,14 +2,19 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 const DIST = join(import.meta.dir, '..', 'dist');
+const SKIP_DIRS = new Set(['architecture']);
 
 async function collectHtml(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const out: string[] = [];
   for (const entry of entries) {
     const full = join(dir, entry.name);
-    if (entry.isDirectory()) out.push(...(await collectHtml(full)));
-    else if (entry.name.endsWith('.html')) out.push(full);
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) continue;
+      out.push(...(await collectHtml(full)));
+    } else if (entry.name.endsWith('.html')) {
+      out.push(full);
+    }
   }
   return out;
 }
@@ -24,6 +29,10 @@ function makeRelative(content: string, prefix: string): string {
 
   // Assets emitted by Astro (/_astro/ or custom /assets/).
   out = out.replace(/(href|src)="\/(assets|_astro)\//g, `$1="${prefix}$2/`);
+
+  // Architecture viewer (Structurizr static export).
+  out = out.replace(/(href|src)="\/architecture\//g, `$1="${prefix}architecture/`);
+  out = out.replace(/href="\/architecture"/g, `href="${prefix}architecture/"`);
 
   // Chapter routes used by sidebar, TOC, and markdown cross-references.
   out = out.replace(

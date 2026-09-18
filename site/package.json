@@ -3,18 +3,20 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
-    "clean": "rm -rf dist .astro src/content/docs public/ubiquitous-language public/formal-laws dist-id.txt dist-manifest.csv dist-manifest.json",
+    "clean": "rm -rf dist .astro src/content/docs public/ubiquitous-language public/formal-laws public/architecture dist-id.txt dist-manifest.csv dist-manifest.json",
     "clean:full": "bun run clean && rm -rf node_modules/.astro node_modules/.vite",
     "sync": "bun run scripts/sync-content.ts",
     "validate": "bun run scripts/validate-frontmatter.ts",
+    "architecture": "bun run scripts/build-architecture.ts",
     "make-relative": "bun run scripts/make-relative.ts",
     "generate:data": "bun run scripts/generate-data.ts",
     "generate:llms": "bun run scripts/generate-llms.ts",
-    "dev": "bun run sync && astro dev",
-    "build": "bun run sync && bun run validate && astro build && bun run make-relative && bun run generate:data && bun run generate:llms",
+    "dev": "bun run sync && bun run architecture && astro dev",
+    "build": "bun run architecture && bun run expand:architecture && bun run sync && bun run validate && astro build && bun run make-relative && bun run generate:data && bun run generate:llms",
     "build:fresh": "bun run clean:full && bun run build",
     "preview": "astro preview",
     "check": "astro check",
+    "arch:preview": "docker run -it --rm -p 8080:8080 --user $(id -u):$(id -g) -v $(pwd)/../architecture:/usr/local/structurizr -w /usr/local/structurizr structurizr/structurizr:latest local",
     "deploy:balance": "bun --env-file=.env run scripts/balance.ts",
     "deploy:devnet": "bun --env-file=.env run scripts/deploy.ts --devnet",
     "deploy:mainnet": "bun --env-file=.env run scripts/deploy.ts --mainnet",
@@ -22,7 +24,9 @@
     "deploy:mainnet:mutable": "bun --env-file=.env run scripts/deploy.ts --mainnet --mutable",
     "publish:devnet": "bun run build:fresh && bun run deploy:devnet:mutable",
     "publish:mainnet": "bun run build:fresh && bun run deploy:mainnet:mutable",
-    "test:mutability": "bun --env-file=.env run scripts/test-mutability.ts"
+    "test:mutability": "bun --env-file=.env run scripts/test-mutability.ts",
+    "test:mutable-html": "bun --env-file=.env run scripts/test-mutable-html.ts",
+    "expand:architecture": "bun run scripts/expand-architecture.ts"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.0",
@@ -40,3 +44,4 @@
     "typescript": "7.0.2"
   }
 }
+
