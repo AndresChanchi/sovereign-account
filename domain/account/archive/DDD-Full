@@ -1,0 +1,5198 @@
+DDD:
+
+# Ubiquitous Language de Kipio Account
+
+## Definición del Dominio — Estable
+
+> **Status:** Documento fuente semántico para la formalización de `Kipio Account`.
+>
+> Este documento refleja las decisiones de dominio consolidadas. Cualquier implementación (Dafny, Rust, contratos) debe conformarse a estas definiciones, no redefinirlas.
+
+---
+
+# 1. Propósito del dominio
+
+`Kipio Account` define una primitive de **identidad soberana, autoridad y ejecución sobre blockchain**.
+
+Su propósito es permitir que una aplicación determine:
+
+1. qué `Identity` soberana está ejerciendo autoridad;
+2. qué autoridad existe para esa Identity;
+3. qué sujeto o mecanismo puede ejercer dicha autoridad;
+4. bajo qué condiciones puede ejercerse;
+5. qué acción solicita el contexto consumidor;
+6. si dicho ejercicio está autorizado;
+7. y cómo una decisión autorizada puede materializarse sobre blockchain.
+
+`Kipio Account` **no define el significado de las acciones de negocio** del contexto consumidor.
+
+El mismo modelo puede ser utilizado por aplicaciones que trabajen con:
+
+* personas;
+* organizaciones;
+* empresas;
+* agentes;
+* servicios;
+* dispositivos;
+* u otros sujetos.
+
+El dominio está diseñado alrededor de blockchain porque la soberanía representada por `Identity` requiere un entorno compartido en el que los estados y transiciones relevantes puedan verificarse sin depender exclusivamente de una autoridad central.
+
+Sin embargo, el dominio no queda definido por:
+
+* Ethereum;
+* EVM;
+* Arbitrum;
+* Stylus;
+* EIP-7702;
+* ERC-4337;
+* RIP-7560;
+* una curva criptográfica;
+* una wallet;
+* una blockchain address;
+* ni otra implementación concreta.
+
+---
+
+# 2. External Identity and Authentication Context
+
+Una aplicación puede disponer de identidades y mecanismos de autenticación externos a `Kipio Account`.
+
+Ejemplos:
+
+```text
+email
+phone
+passkey
+WebAuthn credential
+OAuth identity
+EOA
+hardware authenticator
+```
+
+Estos elementos pertenecen al contexto externo y **no son automáticamente una `Identity` de Kipio**.
+
+Por tanto:
+
+```text
+External Identity
+    !=
+Kipio Identity
+
+Authentication Mechanism
+    !=
+Kipio Identity
+
+Blockchain Address
+    !=
+Kipio Identity
+```
+
+Un mecanismo externo puede producir evidencia que posteriormente sea reconocida por una `Credential`.
+
+La relación conceptual es:
+
+```text
+External Identity / Authentication
+        ↓
+authentication evidence
+        ↓
+Credential
+        ↓
+Account recognition
+        ↓
+authority exercise
+        ↓
+blockchain execution
+```
+
+Una pérdida o sustitución de un mecanismo externo de autenticación **no implica por sí misma la pérdida de la Identity de Kipio**.
+
+Esto permite que una Identity mantenga continuidad soberana aunque cambien los mecanismos mediante los cuales puede ser ejercida.
+
+---
+
+# 3. Subject
+
+Un **Subject** representa el actor semántico al que se atribuye una Identity dentro de Kipio.
+
+Puede representar:
+
+* una persona;
+* una organización;
+* una empresa;
+* un agente;
+* un servicio;
+* un dispositivo;
+* u otro actor reconocido por el contexto consumidor.
+
+Subject no es:
+
+* una Identity;
+* una Credential;
+* una Account;
+* una blockchain address;
+* ni un mecanismo de autenticación.
+
+La distinción es:
+
+```text
+Subject
+    =
+actor semántico
+
+Identity
+    =
+continuidad soberana dentro de Kipio
+```
+
+Un mismo Subject puede estar asociado con múltiples Identities:
+
+```text
+Subject
+    ├── Identity A
+    ├── Identity B
+    └── Identity C
+```
+
+Esto permite, por ejemplo, que una misma persona tenga identidades soberanas distintas para contextos diferentes, o que una organización tenga diferentes continuidades soberanas para diferentes funciones.
+
+### Cardinalidad
+
+```text
+Subject
+    1
+    │
+    └──── 0..N
+           Identities
+```
+
+Cada `Identity` está atribuida a exactamente un `Subject`.
+
+Dentro de Kipio, `Subject` es un **Value Object / semantic actor descriptor**.
+
+---
+
+# 4. Identity
+
+Una **Identity** representa una continuidad soberana reconocida por Kipio mediante la cual un Subject puede ejercer autoridad.
+
+`Identity` es una **Entity**.
+
+La identidad de una Identity es independiente de:
+
+* Credentials;
+* Accounts;
+* mecanismos criptográficos;
+* blockchain addresses;
+* estándares de Account Abstraction;
+* representaciones técnicas.
+
+Una Identity puede controlar múltiples Accounts:
+
+```text
+Identity A
+    ├── Account A
+    ├── Account B
+    └── Account C
+```
+
+Una Identity también puede utilizar múltiples Credentials.
+
+Cambiar, agregar, suspender, revocar o recuperar una Credential **no crea automáticamente una nueva Identity**.
+
+Crear o eliminar una Account tampoco crea automáticamente una nueva Identity.
+
+Cambiar la representación blockchain de una Account tampoco cambia automáticamente la Identity.
+
+### Identity Identifier
+
+Una Identity posee identidad individual propia y estable:
+
+```text
+IdentityId
+```
+
+### Cardinalidad
+
+```text
+Subject
+    1
+    │
+    └──── 0..N
+           Identity
+```
+
+---
+
+# 5. Account
+
+Una **Account** es el componente operativo mediante el cual una Identity ejerce autoridad sobre blockchain.
+
+`Account` es una **Entity**.
+
+Una Account posee identidad propia:
+
+```text
+AccountId
+```
+
+AccountId es diferente de una blockchain address.
+
+La Account mantiene el estado operativo necesario para determinar qué ejercicios de autoridad pueden producir una ejecución válida.
+
+Ese estado puede incluir:
+
+* Capabilities;
+* Credentials;
+* Credential Authorities;
+* Sessions;
+* Delegations;
+* Policy Effects reconocidos;
+* y relaciones entre dichos elementos.
+
+### Cardinalidad Identity ↔ Account
+
+La relación soberana es:
+
+```text
+Identity
+    1
+    │
+    └──── 0..N
+           Accounts
+```
+
+Cada Account tiene **exactamente una Identity soberana**.
+
+Por tanto:
+
+```text
+Account
+    └── sovereign Identity = exactly one
+```
+
+Una segunda Identity puede recibir autoridad para operar una Account mediante:
+
+* Credential;
+* Delegation;
+* Session;
+* u otros mecanismos reconocidos.
+
+Eso no convierte a la segunda Identity en soberana de esa Account.
+
+Por tanto:
+
+```text
+Identity A ─────► Account X
+     sovereign control
+
+Identity B ─────► Account X
+     authorized exercise
+```
+
+no significa:
+
+```text
+Identity A ──┐
+             ├──► Account X
+Identity B ──┘
+    co-sovereignty
+```
+
+El dominio **no permite múltiples sovereign Identities directas sobre una misma Account**.
+
+Crear otra Account crea otra Entity aunque pertenezca a la misma Identity.
+
+---
+
+# 6. Account Identity Representation
+
+Una Account puede tener una representación técnica sobre una blockchain concreta.
+
+Por ejemplo:
+
+```text
+Account
+    ↓
+EVM representation
+    ↓
+Address
+```
+
+Por tanto:
+
+```text
+Account
+    !=
+Blockchain Address
+```
+
+Una blockchain address representa cómo se materializa técnicamente una Account.
+
+No representa:
+
+* la Identity;
+* la soberanía;
+* ni necesariamente el AccountId.
+
+Cambiar entre mecanismos compatibles de materialización no crea automáticamente otra Account mientras continúe el mismo lifecycle de la Entity.
+
+### Principio
+
+```text
+Identity
+    ≠
+Account
+    ≠
+Blockchain Address
+```
+
+---
+
+# 7. Authority
+
+**Authority** representa la facultad efectiva de ejercer determinadas Capabilities.
+
+Authority no constituye necesariamente una Entity persistente.
+
+Es una relación semántica derivada de:
+
+* Capabilities disponibles;
+* Credential Authority;
+* Sessions;
+* Delegations;
+* Restrictions;
+* Policy Effects;
+* Scope;
+* condiciones temporales;
+* contexto;
+* y demás condiciones vigentes.
+
+Authority responde:
+
+> **qué puede ejercerse, por quién y bajo qué condiciones.**
+
+Authority no define cómo se produce evidencia criptográfica.
+
+---
+
+# 8. Capability
+
+Una **Capability** representa una facultad que puede ejercerse mediante una Identity o una autoridad derivada.
+
+Capability expresa:
+
+> **qué facultad existe.**
+
+Ejemplos:
+
+```text
+Upload
+Delete
+Share
+Transfer
+Approve
+Delegate
+Manage
+```
+
+El significado específico de una Domain Action sigue perteneciendo al bounded context consumidor.
+
+Una Capability puede ser limitada mediante:
+
+* Scope;
+* Restrictions;
+* Session;
+* Delegation;
+* condiciones temporales;
+* contexto;
+* Policy Effects;
+* y otras reglas reconocidas.
+
+## Capability como Value Object
+
+`Capability` es un **Value Object**.
+
+Dos Capabilities con exactamente el mismo contenido semántico representan la misma facultad:
+
+```text
+Capability A
+    ==
+Capability B
+```
+
+No existe una identidad individual separada para:
+
+```text
+Upload(Album123)
+```
+
+Por tanto `Capability` **no necesita `CapabilityId`**.
+
+Esto significa que:
+
+```text
+Capability
+    =
+facultad
+
+Credential / Delegation / Authorization
+    =
+mecanismos mediante los cuales esa facultad puede ser ejercida
+```
+
+Revocar una Credential no revoca la existencia semántica de la Capability; únicamente impide que dicha Credential continúe utilizándola.
+
+### Principio
+
+> **Una Capability es una facultad por valor, no una concesión histórica individual.**
+
+---
+
+# 9. Capability Kind
+
+Un **Capability Kind** identifica la clase semántica de una Capability.
+
+Ejemplos:
+
+```text
+Upload
+Delete
+Share
+Transfer
+Approve
+```
+
+Capability Kind:
+
+* no concede autoridad;
+* no representa una ejecución;
+* no identifica una Capability concreta.
+
+`CapabilityKind` es un **Value Object**.
+
+Su significado depende de sus valores.
+
+### CapabilityKind especial: Delegate
+
+`Delegate` es una CapabilityKind semántica especial del dominio de Kipio Account.
+
+Su semántica es: **autoriza el acto de delegar otras Capabilities**.
+
+No es una Capability definida por el consumidor; es inherente al modelo de autorización.
+
+La presencia de `Delegate` en el conjunto de Capabilities de una Identity significa que esa Identity puede conferir autoridad a otros sujetos mediante una Delegation.
+
+**Ley asociada:**  
+Para que una Identity pueda ser `Source` de una Delegation, debe poseer efectivamente la Capability `Delegate` sobre el contexto relevante (Account, Scope, etc.).
+
+---
+
+# 10. Capability Scope
+
+El **Capability Scope** determina el conjunto de recursos, objetos, sujetos o ámbitos sobre los que puede ejercerse una Capability.
+
+Scope expresa:
+
+> **sobre qué puede ejercerse la facultad.**
+
+Ejemplo:
+
+```text
+Capability:
+    Upload
+
+Scope:
+    Album #123
+```
+
+Scope es un **Value Object**.
+
+No debe confundirse con `Execution Target`:
+
+```text
+Capability Scope
+    =
+where authority exists
+
+Execution Target
+    =
+where execution is technically materialized
+```
+
+---
+
+# 11. Capability Metadata
+
+La **Capability Metadata** contiene información descriptiva asociada con una Capability.
+
+Puede utilizarse para:
+
+* presentación;
+* clasificación;
+* organización;
+* descubrimiento;
+* UX;
+* integración.
+
+Metadata no modifica por sí misma la autoridad.
+
+Puede ser:
+
+* pública;
+* privada;
+* cifrada;
+* protegida mediante zero-knowledge proofs;
+* u otros mecanismos.
+
+La Account no determina el mecanismo de privacidad.
+
+### Invariante
+
+> **Modificar Metadata no modifica por sí mismo la autoridad representada por una Capability.**
+
+---
+
+# 12. Credential
+
+Una **Credential** es una fuente reconocida por una Account mediante la cual puede producirse evidencia para ejercer autoridad.
+
+La Credential no identifica la Identity. La Credential es una fuente reconocida mediante la cual puede ejercerse autoridad asociada a una Identity. Por tanto, cualquier mecanismo determinista que derive una Account debe basarse en la continuidad de la Identity soberana, o en una resolución determinista hacia ella, y no directamente en una Credential que pueda ser sustituida durante el lifecycle de la Identity.
+
+`Credential` es una **Entity**.
+
+Una Credential tiene continuidad individual durante su lifecycle:
+
+```text
+active
+→ suspended
+→ reactivated
+→ revoked
+```
+
+Revocar una Credential no crea otra Credential.
+
+Una Credential puede estar basada en:
+
+* passkey;
+* WebAuthn;
+* secp256k1;
+* P-256;
+* hardware;
+* multisig;
+* threshold cryptography;
+* mecanismos futuros;
+* u otros mecanismos.
+
+El dominio no identifica Credential con ninguno de esos mecanismos.
+
+### Credential ≠ Identity
+
+Una Credential no representa soberanía.
+
+Una Credential no se convierte en Identity por producir una Proof.
+
+### Credential ≠ Account
+
+Una Credential tampoco es una Account.
+
+Es una fuente reconocida mediante la cual pueden ejercerse determinadas capacidades sobre una o más Accounts.
+
+---
+
+# 13. Credential ↔ Account Recognition
+
+La relación entre Credential y Account es **contextual y explícita en Authorization State**.
+
+Una Credential puede ser reconocida por una o más Accounts.
+
+Por tanto:
+
+```text
+Credential A
+    ├── recognized by Account A
+    ├── recognized by Account B
+    └── recognized by Account C
+```
+
+El reconocimiento es independiente para cada Account.
+
+Una Credential reconocida por una Account no adquiere soberanía sobre ella.
+
+Tampoco implica que las Accounts compartan soberanía.
+
+La relación semántica es:
+
+```text
+Credential
+    │
+    ├── Account A → Credential Authority A
+    ├── Account B → Credential Authority B
+    └── Account C → Credential Authority C
+```
+
+Por tanto, una misma Credential puede tener diferentes autoridades según la Account en la que sea reconocida.
+
+### Credential ↔ Identity
+
+La Identity soberana pertenece a la Account.
+
+Una Credential puede ser utilizada como mecanismo para ejercer autoridad asociada a la Identity soberana de la Account o autoridad derivada reconocida por ella.
+
+La Credential **no necesita contener la Identity como parte de su identidad estructural**.
+
+Esto permite preservar la separación:
+
+```text
+Identity
+    =
+sovereign continuity
+
+Credential
+    =
+recognized authority-exercise source
+
+Account
+    =
+operational authority state
+```
+
+---
+
+# 14. Credential Authority
+
+**Credential Authority** representa el conjunto de Capabilities que una Credential puede intentar ejercer dentro de una Account concreta.
+
+Credential Authority es un **Value Object / authority relation value**.
+
+Dos Credentials pueden tener la misma Credential Authority:
+
+```text
+CredentialAuthority(A)
+    ==
+CredentialAuthority(B)
+```
+
+sin ser la misma Credential.
+
+### Invariante
+
+```text
+Requested Capability
+    ∈
+Credential Authority
+```
+
+es una condición necesaria para que una Credential pueda intentar ejercer esa Capability.
+
+No es suficiente para que la autoridad sea efectiva.
+
+Sessions, Delegations, Restrictions, Policies y demás condiciones pueden reducirla posteriormente.
+
+### Principio
+
+> **Credential Authority describe qué puede intentar ejercer una Credential sobre una Account; no concede soberanía.**
+
+---
+
+# 15. Proof
+
+Una **Proof** es evidencia criptográfica utilizada para demostrar que una Authorization fue producida mediante la Credential correspondiente.
+
+Proof pertenece a infraestructura criptográfica.
+
+No define:
+
+* Identity;
+* Capability;
+* Scope;
+* Authority;
+* Authorization validity.
+
+### Principio
+
+> **Proof validity is not authorization validity.**
+
+---
+
+# 16. Verifier
+
+Un **Verifier** verifica una Proof utilizando un mecanismo criptográfico concreto.
+
+Puede utilizar:
+
+* P-256;
+* secp256k1;
+* BLS;
+* post-quantum cryptography;
+* u otros mecanismos.
+
+El Verifier determina:
+
+> **si la evidencia satisface las reglas criptográficas de su mecanismo.**
+
+No determina:
+
+> **si el ejercicio de autoridad está permitido.**
+
+---
+
+# 17. Requested Authority
+
+**Requested Authority** representa la autoridad que una Authorization intenta ejercer.
+
+Puede incluir:
+
+* Capabilities;
+* Scope;
+* Restrictions;
+* condiciones temporales;
+* contexto;
+* y otras condiciones relevantes.
+
+Requested Authority es un **Value Object**.
+
+No concede autoridad.
+
+Representa únicamente aquello que una Authorization solicita ejercer.
+
+---
+
+# 18. Authorization
+
+Una **Authorization** representa una solicitud o evidencia verificable de ejercicio de autoridad.
+
+Contiene o referencia:
+
+* Credential;
+* Requested Authority;
+* Restrictions;
+* condiciones temporales;
+* Replay Protection;
+* Proof;
+* **Contexto relevante (definido a continuación)**.
+
+Authorization es un **Value Object**.
+
+Dos Authorizations son iguales cuando tienen el mismo valor semántico completo.
+
+No necesita `AuthorizationId`.
+
+### Authorization Context
+
+El **Contexto** de una Authorization es el conjunto de elementos semánticos que determinan el ámbito y el destino de la autorización.
+
+Forma parte del valor semántico de Authorization y, por tanto, afecta a su igualdad.
+
+Está compuesto por:
+
+* **AccountId**: la Account sobre la que se ejerce la autoridad.
+* **ExecutionTarget**: el destino técnico de la ejecución (ej. contrato, recurso, servicio).
+* **DomainAction**: la acción de negocio solicitada (definida por el consumidor).
+* **Scope**: el ámbito de la acción (puede ser el mismo que el Scope de la Capability o uno más restringido).
+* **Chain**: identificador de la cadena blockchain (si aplica), que permite distinguir entre diferentes entornos o redes.
+
+**Principio:**  
+El Contexto es parte de la intención autorizada. Dos Authorization con idénticos atributos pero diferente Contexto representan solicitudes diferentes y no son iguales.
+
+**Ejemplo:**  
+Authorization A: `Credential X, RequestedAuthority Upload, Scope Album123, Account A, ExecutionTarget Contract1, DomainAction UploadPhoto`  
+Authorization B: mismo Credential y RequestedAuthority, pero `ExecutionTarget Contract2`. A y B son semánticamente diferentes.
+
+### Regla principal
+
+Una Authorization puede aceptarse solamente cuando:
+
+```text
+Requested Authority
+    ⊆
+Effective Authority
+```
+
+y se satisfacen las demás condiciones de Authorization Validation (incluyendo la validez del Contexto en relación con el estado de la Account).
+
+Por tanto:
+
+```text
+Valid Proof
+    ≠
+Valid Authorization
+```
+
+### Replay
+
+`replayKey` o cualquier mecanismo equivalente forma parte de Replay Protection.
+
+No debe confundirse automáticamente con una identidad de Entity.
+
+---
+
+# 19. Authorization Validation
+
+**Authorization Validation** determina si una Authorization puede ser aceptada por una Account en un estado y contexto determinados.
+
+Debe considerar:
+
+1. Credential reconocida;
+2. Proof válida;
+3. Credential Authority compatible;
+4. Capabilities existentes;
+5. Scope;
+6. Restrictions;
+7. Sessions;
+8. Delegations;
+9. Policy Effects;
+10. temporalidad;
+11. Replay Protection;
+12. **Contexto** (que sea compatible con la Account y el Execution Target, entre otros).
+
+### Principio
+
+> **Proof Verification valida evidencia criptográfica; Authorization Validation determina autoridad de dominio.**
+
+La validación de autoridad puede estar distribuida entre diferentes bounded contexts o módulos.
+
+---
+
+# 20. Session
+
+Una **Session** es una autorización temporal derivada de una Credential.
+
+`Session` es una **Entity**.
+
+Mantiene identidad durante su lifecycle:
+
+```text
+active
+→ expired
+
+active
+→ revoked
+```
+
+La expiración o revocación no crea otra Session.
+
+Una Session puede limitar:
+
+* Capabilities;
+* Scope;
+* duración;
+* frecuencia;
+* valor;
+* contexto;
+* destinatarios;
+* otras condiciones.
+
+### Invariante
+
+```text
+Session Authority
+    ⊆
+Credential Authority
+```
+
+Una Session nunca puede ampliar la autoridad de su Credential origen.
+
+### Efecto de la revocación de la Credential sobre la Session
+
+Si la Credential deja de ser válida (por revocación u otra causa), la Session **no cambia su identidad ni su estado persistente** (ej. sigue siendo `Active`).
+
+Sin embargo, **deja de ser usable como fuente de autoridad**. Su contribución a `EffectiveAuthority` se vuelve `∅` mientras la Credential no sea válida.
+
+Esto mantiene la distinción entre:
+- **Entity lifecycle** (identidad y estado persistente).
+- **Effective usability** (capacidad de contribuir a la autoridad).
+
+### Regla de propagación
+
+```text
+Credential revocada
+    ⇒
+Session (aunque Active) no contribuye a EffectiveAuthority
+```
+
+No es necesario cambiar el estado persistente de la Session a `Revoked` cuando la Credential se revoca; la invalidez se propaga por la regla de autoridad.
+
+---
+
+# 21. Delegation
+
+Una **Delegation** permite derivar autoridad hacia otro Subject bajo condiciones explícitas.
+
+`Delegation` es una **Entity**.
+
+Mantiene identidad durante su lifecycle:
+
+```text
+active
+→ revoked
+```
+
+Revocar una Delegation no crea una nueva Delegation.
+
+No transfiere automáticamente:
+
+* Identity;
+* soberanía;
+* propiedad de las Capabilities originales.
+
+### Invariante
+
+```text
+Delegated Authority
+    ⊆
+Delegatable Authority of source
+```
+
+La autoridad delegada nunca puede superar la autoridad que el origen puede legítimamente delegar.
+
+---
+
+# 22. Delegatee
+
+Un **Delegatee** es el Subject que recibe autoridad derivada mediante una Delegation.
+
+Puede representar:
+
+* persona;
+* organización;
+* agente;
+* servicio;
+* dispositivo;
+* Account;
+* otro Subject.
+
+Delegatee no significa sovereign owner.
+
+---
+
+# 23. Restriction
+
+Una **Restriction** limita las condiciones bajo las cuales una Capability puede ejercerse.
+
+Restriction es un **Value Object**.
+
+No crea Capabilities nuevas.
+
+Puede limitar:
+
+* cantidad;
+* valor;
+* frecuencia;
+* tiempo;
+* destinatario;
+* Scope;
+* contexto;
+* tipo de operación;
+* número de ejecuciones.
+
+Ejemplo:
+
+```text
+Spend
+    +
+maximum_value = X
+    +
+valid_until = T
+```
+
+Su significado depende de sus valores.
+
+---
+
+# 24. Effective Authority
+
+**Effective Authority** representa la autoridad que realmente puede ejercerse en un contexto concreto.
+
+Es una representación **derivada, contextual y por valor**.
+
+Conceptualmente:
+
+```text
+Account Capabilities
+        ∩
+Credential Authority
+        ∩
+Session Authority (solo si usable)
+        ∩
+Delegated Authority (solo si usable)
+        ∩
+Scope Conditions
+        ∩
+Restrictions
+        ∩
+Temporal Conditions
+        ∩
+Applicable Policy Effects
+        ↓
+Effective Authority
+```
+
+### El contexto es un input, no parte del Value Object
+
+`EffectiveAuthority` es un Value Object cuyo valor es el conjunto de Capabilities que realmente pueden ejercerse en un contexto dado.
+
+El **contexto** (Account, tiempo, ExecutionTarget, etc.) es un **parámetro de entrada** para la función que deriva EffectiveAuthority. No forma parte de la identidad del Value Object resultante.
+
+Por tanto:
+
+- Dos evaluaciones de EffectiveAuthority con diferentes contextos pueden producir valores diferentes.
+- El contexto no se almacena como parte del Value Object.
+- La igualdad de EffectiveAuthority se determina exclusivamente por el conjunto de Capabilities que resulta de la derivación.
+
+**Ejemplo:**
+- `EffectiveAuthority(I, Account X, Context A) = {Upload, View}`
+- `EffectiveAuthority(I, Account X, Context B) = {View}` (porque Context B restringe la autoridad)
+
+Ambos resultados son Value Objects distintos porque sus valores son diferentes. El contexto no es parte del valor; es un input.
+
+Effective Authority no necesita identidad propia.
+
+La misma Credential puede producir diferentes Effective Authorities dependiendo de:
+
+* Account;
+* Session;
+* Delegation;
+* Scope;
+* tiempo;
+* Restrictions;
+* Authorization State;
+* Policy Effects;
+* Execution Context.
+
+---
+
+# 25. Authorization State
+
+**Authorization State** representa el estado operativo de autorización mantenido por una Account.
+
+Puede contener:
+
+* Credentials;
+* reconocimiento Credential ↔ Account;
+* Credential Authorities;
+* Sessions;
+* Delegations;
+* Capabilities;
+* Restrictions;
+* Policy Effects reconocidos;
+* relaciones estructurales necesarias para evaluar autoridad.
+
+Authorization State no representa una ejecución.
+
+Authorization State es el estado sobre el cual se resuelve Effective Authority.
+
+### Importante
+
+`Credential`, `Session`, `Delegation`, `Capability`, etc. pueden existir como conceptos independientes, pero **las relaciones entre ellos pertenecen a Authorization State cuando dichas relaciones son parte del estado operativo de una Account**.
+
+Esto evita introducir esas relaciones artificialmente dentro de los value objects.
+
+---
+
+# 26. Authorization State Transition
+
+Una **Authorization State Transition** representa un cambio válido en Authorization State.
+
+Ejemplos:
+
+* registrar Credential;
+* reconocer Credential en Account;
+* establecer Credential Authority;
+* modificar Credential Authority;
+* revocar Credential;
+* crear Session;
+* revocar Session;
+* crear Delegation;
+* revocar Delegation;
+* modificar Capabilities;
+* aplicar Policy Effect.
+
+Estas transiciones pertenecen al dominio de Account.
+
+No representan ejecuciones de negocio sobre recursos externos.
+
+---
+
+# 27. Policy
+
+Una **Policy** representa una decisión externa reconocida por Account como capaz de producir uno o más cambios sobre Authorization State.
+
+La Policy **no necesita identidad propia dentro de Account**.
+
+En contextos externos puede existir una Entity que representa el procedimiento que produjo esa decisión.
+
+Por ejemplo:
+
+```text
+RecoveryPolicyRequest
+```
+
+puede ser una Entity del bounded context Recovery con:
+
+* requestId;
+* lifecycle;
+* approval;
+* expiration;
+* cancellation;
+* consumption.
+
+Pero:
+
+```text
+RecoveryPolicyRequest
+    ≠
+Policy Effect
+```
+
+y:
+
+```text
+RecoveryPolicyRequest
+    ≠
+Account Policy Value
+```
+
+Account consume la decisión reconocida, no necesita conocer todo el lifecycle del bounded context productor.
+
+---
+
+# 28. Policy Effect
+
+Un **Policy Effect** representa el cambio semántico que una Policy produce sobre Authorization State.
+
+Ejemplos:
+
+```text
+RevokeCredential(X)
+EnableRecovery
+DisableCapability(Y)
+ModifyAuthorizationCondition(Z)
+```
+
+`PolicyEffect` es un **Value Object**.
+
+Dos Policies distintas pueden producir el mismo efecto:
+
+```text
+PolicyRequest #1
+    → RevokeCredential(X)
+
+PolicyRequest #2
+    → RevokeCredential(X)
+```
+
+y:
+
+```text
+RevokeCredential(X)
+    ==
+RevokeCredential(X)
+```
+
+La identidad histórica pertenece al procedimiento externo, no al efecto.
+
+---
+
+# 29. Policy Consumption
+
+**Policy Consumption** representa el reconocimiento y aplicación de una Policy por parte de Account.
+
+Conceptualmente:
+
+```text
+External Policy
+      ↓
+Policy Recognition
+      ↓
+Policy Consumption
+      ↓
+Policy Effect(s)
+      ↓
+Authorization State Transition
+```
+
+Account no necesita conocer cómo fue aprobada la Policy.
+
+La aprobación pertenece al bounded context productor.
+
+Una Policy puede producir **uno o más Policy Effects**.
+
+La semántica de:
+
+* atomicidad;
+* orden;
+* idempotencia;
+* duplicación;
+* consumo parcial;
+
+pertenece a la formalización de Policy Consumption y Account Transitions.
+
+`PolicyConsumption` es un **Value Object / transition value** mientras no se descubra un lifecycle histórico propio dentro de Account.
+
+---
+
+# 30. Domain Action
+
+Una **Domain Action** representa una intención concreta del bounded context consumidor.
+
+Ejemplos:
+
+```text
+UploadPhoto
+DeletePhoto
+TransferFunds
+ApprovePayroll
+CreateInvoice
+ShareAlbum
+```
+
+Kipio Account no define:
+
+* el catálogo;
+* el significado;
+* el lifecycle;
+* la identidad interna;
+* las reglas de negocio.
+
+Domain Action es un **external Value Object**.
+
+Kipio sólo necesita una representación suficiente para determinar si existe autoridad para ejecutar la acción.
+
+---
+
+# 31. Execution Request
+
+Un **Execution Request** representa una solicitud para materializar una Domain Action.
+
+Puede contener:
+
+* Domain Action;
+* Authorization;
+* Requested Authority;
+* Execution Target;
+* Execution Constraints;
+* contexto necesario para Runtime.
+
+Execution Request es un **Value Object / request value**.
+
+No representa una Execution materializada.
+
+---
+
+# 32. Execution Target
+
+Un **Execution Target** identifica el destino técnico sobre el cual se materializará la ejecución.
+
+Puede representar:
+
+* contrato;
+* recurso;
+* servicio;
+* infraestructura;
+* u otro destino compatible.
+
+No define Authority.
+
+La diferencia es:
+
+```text
+Capability Scope
+    =
+where authority exists
+
+Execution Target
+    =
+where execution is materialized
+```
+
+---
+
+# 33. Execution Context
+
+Un **Execution Context** representa la decisión completa y validada necesaria para que una ejecución sea materializada.
+
+Puede incorporar los resultados de:
+
+* Authorization;
+* Effective Authority;
+* Authorization State;
+* Policy Effects;
+* Restrictions;
+* Execution Constraints;
+* Domain Action;
+* Execution Target;
+* y demás condiciones relevantes.
+
+Un Execution Context válido significa:
+
+> **la autoridad requerida y las condiciones necesarias han sido evaluadas y la ejecución puede proceder bajo ese contexto.**
+
+El Execution Context es un **Value Object / complete execution decision**.
+
+El Execution Engine recibe únicamente contextos válidos.
+
+No vuelve a decidir Authority.
+
+---
+
+# 34. Execution Constraints
+
+**Execution Constraints** representan condiciones que deben satisfacerse para materializar un Execution Context.
+
+Pueden incluir:
+
+* límites;
+* temporalidad;
+* atomicidad;
+* límites operativos;
+* condiciones de materialización;
+* otras restricciones reconocidas.
+
+Execution Constraints no crean Authority.
+
+Sólo condicionan la materialización de una decisión autorizada.
+
+---
+
+# 35. Runtime
+
+El **Runtime** es el componente transitorio que **orquesta la evaluación distribuida y la materialización operacional** de una solicitud.
+
+El Runtime:
+
+1. recibe una Execution Request;
+2. coordina la obtención del Authorization State relevante;
+3. coordina la validación de Authorization;
+4. coordina la determinación de Effective Authority;
+5. coordina la aplicación de Policy Effects y Restrictions relevantes;
+6. verifica Execution Constraints;
+7. construye Execution Context;
+8. entrega únicamente contextos válidos al Execution Engine.
+
+### Importante
+
+Runtime **no es el propietario de todas las reglas de autoridad**.
+
+La evaluación puede distribuirse entre bounded contexts o módulos especializados, por ejemplo:
+
+```text
+Authentication / Credential Verification
+Authorization
+Recovery
+Access
+Registry
+Economics
+Execution Gateway
+```
+
+Runtime coordina esos resultados.
+
+Por tanto:
+
+```text
+Runtime
+    =
+Authority / Execution Orchestration
+```
+
+no:
+
+```text
+Runtime
+    =
+owner of every authorization rule
+```
+
+---
+
+# 36. Execution Engine
+
+El **Execution Engine** recibe un Execution Context válido y transforma esa decisión en operaciones materializables.
+
+Su entrada conceptual es:
+
+```text
+Execution Context
+```
+
+No:
+
+* interpreta Credentials;
+* decide Authority;
+* crea Authorization;
+* define Domain Actions;
+* redefine Policy;
+* implementa reglas criptográficas.
+
+Su responsabilidad es:
+
+> **materializar una decisión ya tomada.**
+
+Puede producir una o múltiples operaciones cuando la infraestructura soporte:
+
+* batching;
+* multicall;
+* atomicidad;
+* u otros mecanismos equivalentes.
+
+---
+
+# 37. Execution
+
+Una **Execution** representa el proceso/materialización concreta de una acción autorizada.
+
+No es actualmente una Entity del `Account domain`.
+
+La arquitectura actual distingue:
+
+```text
+Execution Request
+        ↓
+Execution Context
+        ↓
+Runtime orchestration
+        ↓
+Execution Engine
+        ↓
+Adapter
+        ↓
+physical execution
+```
+
+Una ejecución puede consistir en:
+
+```text
+one operation
+```
+
+o:
+
+```text
+multiple operations
+```
+
+La infraestructura determina cómo se garantizan:
+
+* atomicidad;
+* integridad;
+* replay protection;
+* cumplimiento de constraints.
+
+### Lifecycle
+
+El Runtime puede poseer un lifecycle operacional:
+
+```text
+Validation
+→ PreFlight
+→ Accounting
+→ Dispatch
+→ Settlement
+```
+
+y resultados como:
+
+```text
+Completed
+Reverted
+Aborted
+Expired
+Cancelled
+Failed
+```
+
+pero estos representan **el lifecycle del workflow operacional**, no una Entity `Execution` persistente del dominio Account.
+
+Por tanto:
+
+```text
+Execution
+    ≠
+Execution Entity
+```
+
+y no se introduce `ExecutionId`.
+
+---
+
+# 38. Adapter
+
+Un **Adapter** materializa una Execution sobre una infraestructura concreta.
+
+Ejemplos:
+
+* EIP-7702;
+* ERC-4337;
+* RIP-7560;
+* futuras formas de Account Abstraction;
+* otras infraestructuras compatibles.
+
+El Adapter transforma:
+
+```text
+Kipio Execution Semantics
+        ↓
+Infrastructure primitives
+```
+
+y no al contrario.
+
+### Principio
+
+> **El dominio define qué significa una ejecución válida; el Adapter define cómo materializarla sobre una infraestructura concreta.**
+
+---
+
+# 39. Blockchain
+
+La **Blockchain** forma parte del contexto fundamental de Kipio.
+
+Proporciona el entorno compartido donde Accounts pueden:
+
+* ejercer autoridad;
+* producir cambios verificables;
+* materializar ejecuciones.
+
+Kipio no abstrae la existencia de blockchain.
+
+Abstrae las diferencias entre las infraestructuras concretas utilizadas para operar sobre ella.
+
+```text
+Blockchain
+    ≠
+Ethereum
+    ≠
+EVM
+    ≠
+Arbitrum
+    ≠
+Stylus
+    ≠
+EIP-7702
+    ≠
+ERC-4337
+```
+
+---
+
+# 40. Gas Payment
+
+**Gas Payment** representa la provisión de recursos económicos necesarios para materializar una Execution.
+
+Gas Payment es independiente de Authority.
+
+Una entidad puede pagar una Execution sin adquirir autoridad sobre ella.
+
+```text
+Authority
+    ≠
+Gas Payment
+```
+
+Pagar no concede autorización.
+
+---
+
+# 41. Execution Sponsor
+
+Un **Execution Sponsor** proporciona recursos para pagar una Execution en beneficio de otro sujeto.
+
+El Sponsor no adquiere automáticamente Authority.
+
+Los mecanismos concretos pueden incluir:
+
+* relayers;
+* paymasters;
+* sponsored accounts;
+* mecanismos nativos;
+* u otros.
+
+Sponsorship pertenece a infraestructura/economics.
+
+---
+
+# 42. Replay Protection
+
+**Replay Protection** garantiza que una Authorization o Execution no pueda reutilizarse fuera de las condiciones para las cuales fue creada.
+
+Puede depender de:
+
+* replay keys;
+* nonces;
+* sequence numbers;
+* expiración;
+* consumption markers;
+* state;
+* temporalidad;
+* u otros mecanismos.
+
+El dominio exige:
+
+> **Una Authorization válida en un contexto no debe convertirse automáticamente en una Authorization válida en un contexto posterior o diferente cuando sus condiciones originales ya no se cumplen.**
+
+Replay Protection no implica que exista una Entity `Authorization`.
+
+Su estado operacional puede pertenecer a Authorization State o a un estado específico de replay.
+
+---
+
+# 43. Authentication
+
+**Authentication** es el proceso mediante el cual se obtiene evidencia de que una Credential corresponde al mecanismo o sujeto que pretende ejercerla.
+
+Authentication no equivale a Authorization.
+
+```text
+Authentication
+    =
+who / what produced the evidence
+
+Authorization
+    =
+what authority may be exercised
+```
+
+Una autenticación correcta no concede automáticamente una Capability.
+
+---
+
+# 44. Identity Sovereignty
+
+**Identity Sovereignty** significa que la continuidad soberana de una Identity no depende del mecanismo concreto mediante el cual se autentica, ejerce, delega o materializa su autoridad.
+
+Esto implica:
+
+* cambiar Credentials no cambia automáticamente Identity;
+* cambiar Accounts no cambia automáticamente Identity;
+* cambiar blockchain representation no cambia automáticamente Identity;
+* Delegation no transfiere automáticamente sovereignty;
+* Sponsor no adquiere Authority por pagar;
+* mecanismo criptográfico no define Identity;
+* address no define Identity.
+
+La soberanía pertenece a `Identity`.
+
+---
+
+# 45. Authority Abstraction
+
+**Authority Abstraction** es la capacidad de representar:
+
+```text
+who may exercise
+what authority
+under what conditions
+```
+
+sin exigir que el modelo conceptual conozca:
+
+* curva criptográfica;
+* wallet;
+* proveedor de autenticación;
+* blockchain concreta;
+* Account Abstraction standard;
+* address representation;
+* u otra implementación.
+
+Authority Abstraction no significa eliminar blockchain del modelo.
+
+Significa abstraer las implementaciones concretas mediante las cuales la autoridad se ejerce sobre blockchain.
+
+---
+
+# 46. Entity and Value Object Classification
+
+La clasificación consolidada es:
+
+## Entities
+
+```text
+Identity
+Account
+Credential
+Session
+Delegation
+```
+
+Estas entidades poseen identidad individual propia y continuidad/lifecycle.
+
+Sus identifiers son:
+
+```text
+IdentityId
+AccountId
+CredentialId
+SessionId
+DelegationId
+```
+
+## Value Objects
+
+```text
+Subject
+Capability
+CapabilityKind
+Scope
+Restriction
+CredentialAuthority
+EffectiveAuthority
+RequestedAuthority
+Authorization
+Policy
+PolicyEffect
+PolicyConsumption
+DomainAction
+ExecutionRequest
+ExecutionContext
+ExecutionConstraints
+Timestamp
+```
+
+## Operational / Infrastructure Concepts
+
+```text
+Proof
+Verifier
+Runtime
+Execution Engine
+Execution
+Adapter
+Blockchain
+Gas Payment
+Execution Sponsor
+Authentication
+```
+
+Estos últimos no deben recibir artificialmente identidad de Entity dentro del Account domain.
+
+---
+
+# 47. Identifier Semantics
+
+Un **Identifier** representa una referencia estable utilizada para distinguir una Entity cuya identidad individual forma parte de su semántica.
+
+Los identifiers actuales son:
+
+```text
+Identity       → IdentityId
+Account        → AccountId
+Credential     → CredentialId
+Session        → SessionId
+Delegation     → DelegationId
+```
+
+No se asignan identifiers propios a:
+
+```text
+Capability
+PolicyEffect
+Authorization
+ExecutionContext
+DomainAction
+Restriction
+Scope
+```
+
+porque su significado está determinado por su contenido.
+
+### Identifier ≠ representación
+
+Un Identifier no es automáticamente:
+
+* hash;
+* nonce;
+* address;
+* B256;
+* private key;
+* public key;
+* clasificación.
+
+### Tamaño
+
+El dominio no establece actualmente:
+
+```text
+|Identifier| = 32 bytes
+```
+
+La representación física puede ser definida por infraestructura sin cambiar necesariamente la semántica del Identifier.
+
+### Uniqueness
+
+Cada Entity debe poder distinguirse dentro del ámbito de identidad que requiera su lifecycle.
+
+La forma concreta de garantizar esa unicidad pertenece al diseño del estado y la infraestructura correspondiente.
+
+### Generation
+
+El dominio no exige un único mecanismo de generación.
+
+Puede ser:
+
+* deterministic;
+* random;
+* derived;
+* assigned;
+* external;
+* u otro mecanismo compatible.
+
+---
+
+# 48. Universal Account Stress Test
+
+Toda nueva abstracción debe justificarse mediante un problema real y recurrente.
+
+Antes de introducir una nueva Entity, Value Object, relación o regla debe verificarse:
+
+### 1. Problema real
+
+¿Qué problema concreto y recurrente resuelve?
+
+### 2. Reutilización
+
+¿Aparece en más de una aplicación o contexto?
+
+### 3. Independencia de aplicación
+
+¿Puede existir sin conocer el modelo de negocio específico de una aplicación?
+
+### 4. Independencia de infraestructura
+
+¿Puede expresarse sin depender de una implementación concreta?
+
+### 5. Composición
+
+¿Puede resolverse componiendo conceptos existentes?
+
+### 6. Semántica
+
+¿Representa una realidad del dominio o una necesidad de implementación?
+
+### 7. Reutilización entre Subjects
+
+¿Puede utilizarse con diferentes tipos de Subject?
+
+### 8. Identity Requirement
+
+¿Necesita identidad individual propia o su significado está completamente determinado por sus valores?
+
+La ausencia de una necesidad clara de identidad debe impedir introducir un Identifier artificial.
+
+---
+
+# 49. Principios arquitectónicos oficiales
+
+1. **Subject, Identity, Account y Blockchain Address son conceptos diferentes.**
+
+2. **External Identity y Authentication Mechanism no son automáticamente Kipio Identity.**
+
+3. **Subject representa al actor semántico.**
+
+4. **Identity representa continuidad soberana.**
+
+5. **Una Identity puede controlar múltiples Accounts.**
+
+6. **Cada Account tiene exactamente una sovereign Identity.**
+
+7. **La autorización de otra Identity sobre una Account no crea co-soberanía.**
+
+8. **Account es una Entity distinta de una Blockchain Address.**
+
+9. **Capability es un Value Object.**
+
+10. **Capability expresa una facultad y no una concesión histórica individual.**
+
+11. **Capability no necesita CapabilityId.**
+
+12. **CapabilityKind y Scope son Value Objects.**
+
+13. **Credential es una Entity independiente de Identity.**
+
+14. **Una Credential puede ser reconocida por una o más Accounts.**
+
+15. **El reconocimiento de Credential es específico a cada Account.**
+
+16. **Credential Authority es un Value Object que describe la autoridad que una Credential puede intentar ejercer sobre una Account.**
+
+17. **Una Credential no adquiere soberanía por ser reconocida por una Account.**
+
+18. **Una Session es una Entity temporal derivada de una Credential.**
+
+19. **Session Authority nunca puede superar Credential Authority.**
+
+20. **Delegation es una Entity con lifecycle propio.**
+
+21. **Delegated Authority nunca puede superar la Delegatable Authority del origen.**
+
+22. **Restriction es un Value Object que limita autoridad existente.**
+
+23. **Effective Authority es contextual, derivada y por valor.**
+
+24. **Authorization es un Value Object.**
+
+25. **Authorization no necesita AuthorizationId.**
+
+26. **Requested Authority es un Value Object.**
+
+27. **Proof Verification y Authorization Validation son responsabilidades diferentes.**
+
+28. **Proof válida no implica Authorization válida.**
+
+29. **Policy es una decisión externa reconocida por Account y no necesita identidad propia dentro de Account.**
+
+30. **RecoveryPolicyRequest u otras entidades históricas pertenecen a sus bounded contexts productores.**
+
+31. **PolicyEffect es un Value Object.**
+
+32. **Una Policy puede producir uno o más Policy Effects.**
+
+33. **Policy Consumption produce cambios reconocidos sobre Authorization State.**
+
+34. **Authorization State contiene relaciones operativas entre Credentials, Accounts, Sessions, Delegations, Capabilities y Policy Effects.**
+
+35. **Authorization State Transition representa cambios válidos de ese estado.**
+
+36. **Domain Action pertenece al bounded context consumidor.**
+
+37. **Execution Request es un Value Object.**
+
+38. **Execution Context es un Value Object y representa una decisión completa ya validada.**
+
+39. **Execution Constraints no crean Authority.**
+
+40. **Runtime coordina la evaluación distribuida de autoridad y la orquestación de ejecución.**
+
+41. **Runtime no es propietario de todas las reglas de autorización.**
+
+42. **Execution Engine materializa Execution Contexts válidos y no decide Authority.**
+
+43. **Execution es un proceso/materialización operacional, no una Entity del Account domain.**
+
+44. **No se introduce ExecutionId.**
+
+45. **Una Execution puede producir múltiples operaciones cuando la infraestructura soporte batching, multicall o atomicidad.**
+
+46. **Adapters materializan las semánticas del dominio sobre infraestructuras concretas.**
+
+47. **Blockchain es parte fundamental del contexto de Kipio.**
+
+48. **Authentication, Authorization y Gas Payment son responsabilidades diferentes.**
+
+49. **Capability Scope y Execution Target son conceptos diferentes.**
+
+50. **Metadata no modifica por sí misma la autoridad.**
+
+51. **Los identifiers existen porque ciertas Entities necesitan identidad individual.**
+
+52. **No todo concepto del dominio necesita Identifier.**
+
+53. **Un Identifier no es automáticamente hash, nonce, address, B256 o clave criptográfica.**
+
+54. **El dominio no fija actualmente un tamaño concreto de Identifier.**
+
+55. **Replay Protection es una propiedad transversal y no convierte Authorization en una Entity.**
+
+56. **Una nueva abstracción debe justificarse por una necesidad real y recurrente.**
+
+57. **La formalización Dafny debe derivarse del significado del DDD y no utilizar detalles de Rust/EVM para redefinir el dominio.**
+
+---
+
+# 50. Modelo conceptual consolidado
+
+```text
+                         EXTERNAL WORLD
+                               │
+                 ┌─────────────┴─────────────┐
+                 │                           │
+          External Identity          Authentication
+          email / phone / EOA         mechanisms
+                 │                           │
+                 └─────────────┬─────────────┘
+                               │
+                         authentication
+                           evidence
+                               │
+                               ▼
+                           CREDENTIAL
+                               │
+                    recognized by Account
+                               │
+                               ▼
+                           IDENTITY
+                               │
+                  sovereign ownership
+                               │
+                  ┌────────────┼────────────┐
+                  │            │            │
+               Account A    Account B    Account C
+                  │            │            │
+                  └────────────┼────────────┘
+                               │
+                     AUTHORIZATION STATE
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+   CAPABILITIES            CREDENTIALS            POLICIES
+        │                      │                      │
+        │              CREDENTIAL AUTHORITY       POLICY EFFECTS
+        │                      │                      │
+        │                   SESSIONS                 │
+        │                      │                      │
+        │                 DELEGATIONS                │
+        │                      │                      │
+        └──────────────────────┼──────────────────────┘
+                               │
+                         RESTRICTIONS
+                               │
+                               ▼
+                     EFFECTIVE AUTHORITY
+                               │
+                    ┌──────────┴──────────┐
+                    │                     │
+              AUTHORIZATION         DOMAIN ACTION
+                    │                     │
+                    └──────────┬──────────┘
+                               │
+                      EXECUTION REQUEST
+                               │
+                               ▼
+                            RUNTIME
+                               │
+                  distributed authority
+                     / orchestration
+                               │
+                               ▼
+                     EXECUTION CONTEXT
+                               │
+                               ▼
+                      EXECUTION ENGINE
+                               │
+                               ▼
+                            ADAPTER
+                               │
+                               ▼
+                          BLOCKCHAIN
+```
+
+Infraestructura transversal:
+
+```text
+Proof
+Verifier
+Authentication mechanisms
+Replay Protection
+Gas Payment
+Execution Sponsor
+Privacy mechanisms
+Blockchain Address representations
+```
+
+---
+
+# 51. Distinción fundamental del dominio
+
+```text
+SUBJECT
+    =
+SEMANTIC ACTOR
+
+IDENTITY
+    =
+SOVEREIGN CONTINUITY
+
+ACCOUNT
+    =
+OPERATIONAL COMPONENT THROUGH WHICH
+AN IDENTITY EXERCISES AUTHORITY ON BLOCKCHAIN
+
+CAPABILITY
+    =
+WHAT AUTHORITY EXISTS
+
+CREDENTIAL
+    =
+RECOGNIZED SOURCE FOR PRODUCING
+AUTHORIZATION EVIDENCE
+
+CREDENTIAL AUTHORITY
+    =
+WHAT A CREDENTIAL MAY ATTEMPT TO EXERCISE
+ON AN ACCOUNT
+
+AUTHORIZATION
+    =
+WHAT AUTHORITY IS REQUESTED / EVIDENCED
+
+RESTRICTION / SCOPE / SESSION / DELEGATION
+    =
+UNDER WHAT CONDITIONS
+
+EFFECTIVE AUTHORITY
+    =
+WHAT MAY ACTUALLY BE EXERCISED IN CONTEXT
+
+AUTHORIZATION STATE
+    =
+OPERATIVE AUTHORITY STATE
+
+RUNTIME
+    =
+DISTRIBUTED AUTHORITY / EXECUTION ORCHESTRATION
+
+EXECUTION CONTEXT
+    =
+COMPLETE VALID EXECUTION DECISION
+
+EXECUTION ENGINE
+    =
+EXECUTION MATERIALIZATION
+
+EXECUTION
+    =
+OPERATIONAL MATERIALIZATION PROCESS
+
+ADAPTER
+    =
+INFRASTRUCTURE-SPECIFIC MATERIALIZATION
+```
+
+Y las separaciones fundamentales:
+
+```text
+External Identity
+    ≠
+Subject
+    ≠
+Kipio Identity
+    ≠
+Account
+    ≠
+Blockchain Address
+```
+
+y:
+
+```text
+Capability
+    ≠
+Credential Authority
+    ≠
+Effective Authority
+    ≠
+Authorization
+    ≠
+Execution
+```
+
+---
+
+# 52. Decisiones cerradas del dominio
+
+Las siguientes decisiones sobre la naturaleza de los conceptos están establecidas:
+
+```text
+Subject
+    → Value Object
+
+Identity
+    → Entity
+
+Account
+    → Entity
+
+Capability
+    → Value Object
+
+CapabilityKind
+    → Value Object (con la excepción semántica de `Delegate`, que es una CapabilityKind especial del dominio)
+
+Scope
+    → Value Object
+
+Restriction
+    → Value Object
+
+Credential
+    → Entity
+
+CredentialAuthority
+    → Value Object
+
+Session
+    → Entity
+
+Delegation
+    → Entity
+
+EffectiveAuthority
+    → Value Object
+
+RequestedAuthority
+    → Value Object
+
+Authorization
+    → Value Object
+
+Policy
+    → recognized external decision/value
+
+PolicyEffect
+    → Value Object
+
+PolicyConsumption
+    → Value Object / transition value
+
+DomainAction
+    → external Value Object
+
+ExecutionRequest
+    → Value Object
+
+ExecutionContext
+    → Value Object
+
+ExecutionConstraints
+    → Value Object
+
+Execution
+    → operational process, not Entity
+```
+
+Y las cardinalidades fundamentales:
+
+```text
+Identity 1
+    └── 0..N Accounts
+
+Account 1
+    └── exactly 1 sovereign Identity
+
+Credential 1
+    └── 0..N recognized Accounts
+
+Subject 1
+    └── 0..N Identities
+```
+
+---
+
+# 53. Rule for the formalization
+
+La prioridad formal es:
+
+```text
+DDD semantic invariant
+        ↓
+Dafny domain model
+        ↓
+formal law
+        ↓
+proof
+        ↓
+Rust / blockchain representation
+```
+
+Nunca:
+
+```text
+Rust / EVM convenience
+        ↓
+Dafny type
+        ↓
+DDD retrofitted afterwards
+```
+
+Cuando Dafny encuentre una ambigüedad:
+
+```text
+Dafny ambiguity
+      ↓
+DDD clarification
+      ↓
+formal law
+      ↓
+proof
+```
+
+No se debe resolver una ambigüedad del dominio simplemente introduciendo una estructura conveniente en Dafny.
+
+# Formal Domain Laws — D1 (Delegación y Autoridad)
+
+Esta sección constituye la formalización semántica del dominio de delegación y derivación de autoridad en `Kipio Account`.
+
+Las leyes aquí definidas son independientes de:
+
+- Dafny;
+- Rust;
+- EVM;
+- blockchain address;
+- cryptographic primitives;
+- storage representation;
+- implementation-specific data structures.
+
+La implementación debe demostrar estas leyes, no redefinirlas.
+
+---
+
+## Notación formal
+
+Se utilizan las siguientes relaciones conceptuales:
+
+- `Sovereign(A)` — representa la Identity soberana de una Account.
+- `Authority(I, A, C, context)` — representa la autoridad que una Identity puede ejercer sobre una Account respecto de una Capability bajo un contexto determinado.
+- `EffectiveAuthority(I, A, context)` — representa la autoridad efectivamente ejercible.
+- `DelegatableAuthority(I, A, context)` — representa la autoridad que la Identity puede legítimamente conferir a otro sujeto.
+- `DelegatedAuthority(D)` — representa la autoridad conferida por una Delegation.
+- `Source(D)` — representa la Identity que origina la Delegation.
+- `Delegatee(D)` — representa el Subject receptor de la Delegation.
+
+No se presupone que estas expresiones correspondan a Entities o Value Objects adicionales. Son relaciones semánticas derivadas.
+
+---
+
+## Leyes de Soberanía
+
+**D1.1 — Soberanía Exacta**  
+Para toda Account existe exactamente una Identity soberana.
+
+Formalmente:
+
+```
+∀ account :
+    ∃! identity :
+        Sovereign(identity, account)
+```
+
+Es decir:
+
+```
+|SovereignIdentities(account)| = 1
+```
+
+Una Account no puede tener:
+
+- 0 sovereign identities;
+- 2+ sovereign identities;
+
+como resultado de las relaciones de autorización.
+
+**D1.2 — La Soberanía está Vinculada a Identity**  
+La soberanía pertenece a Identity, no a:
+
+- Credential;
+- Session;
+- Delegation;
+- Capability;
+- Blockchain Address;
+- Sponsor;
+- Proof.
+
+Por tanto:
+
+```
+Sovereign(Account) = Identity
+```
+
+y nunca:
+
+```
+Sovereign(Account) = Credential
+Sovereign(Account) = Delegatee
+```
+
+**D1.3 — La Autorización no Crea Soberanía**  
+Si una Identity recibe cualquier autoridad sobre una Account:
+
+```
+Authorized(B, Account)
+```
+
+no se sigue:
+
+```
+Sovereign(B, Account)
+```
+
+Por tanto:
+
+```
+Authorized(B, Account) ⇏ Sovereign(B, Account)
+```
+
+Esto incluye autoridad obtenida mediante:
+
+- Credential;
+- Session;
+- Delegation;
+- Policy Effect.
+
+**D1.4 — La Delegación no Transfiere Soberanía**  
+Para toda Delegation D:
+
+```
+Source(D) ≠ sovereign transfer
+```
+
+Específicamente:
+
+```
+SovereignIdentity(Account(D))
+```
+
+permanece inmutable respecto de la existencia de la Delegation.
+
+Si:
+
+```
+X = SovereignIdentity(Account)
+```
+
+y:
+
+```
+D = X → B
+```
+
+entonces:
+
+```
+SovereignIdentity(Account) = X
+```
+
+después de crear D.
+
+---
+
+## Leyes de Origen de la Autoridad
+
+Una Identity puede obtener autoridad de dos fuentes semánticas:
+
+- **sovereign authority**;
+- **derived authority**.
+
+La autoridad derivada puede proceder de:
+
+- Credential;
+- Session;
+- Delegation;
+- Policy State;
+
+según las relaciones reconocidas por `AuthorizationState`.
+
+**D1.5 — Autoridad Soberana**  
+La Identity soberana de una Account constituye la fuente raíz de autoridad de dicha Account.
+
+Por tanto:
+
+```
+Account
+    ↓
+Sovereign Identity
+    ↓
+Account Authorization State
+    ↓
+Authority
+```
+
+La autoridad derivada no crea una nueva raíz soberana.
+
+**D1.6 — Autoridad Derivada**  
+Toda autoridad derivada debe estar limitada por la autoridad de su fuente.
+
+Formalmente:
+
+```
+DerivedAuthority(child) ⊆ SourceAuthority(source)
+```
+
+Esta ley se especializa para:
+
+- Session;
+- Delegation.
+
+---
+
+## Leyes de Capability
+
+**D1.7 — Capability Representa Autoridad**  
+Una Capability representa una facultad semántica:
+
+```
+Capability = Kind + Scope + relevant semantic restrictions
+```
+
+La existencia de una Capability no implica que cualquier Identity pueda ejercerla.
+
+Por tanto:
+
+```
+Capability exists ⇏ Identity may exercise Capability
+```
+
+La autoridad efectiva depende del `AuthorizationState` y del contexto.
+
+**D1.8 — Capability no es una Concesión**  
+Una Capability no representa una concesión histórica.
+
+Por tanto:
+
+```
+Capability ≠ Grant Event
+```
+
+La misma Capability puede aparecer en diferentes relaciones de autoridad:
+
+```
+Credential A → Upload(X)
+Credential B → Upload(X)
+```
+
+sin que sean necesariamente la misma entidad histórica.
+
+---
+
+## Leyes de Autoridad de Credential
+
+**D1.9 — La Autoridad de Credential es Relativa a la Account**  
+La autoridad de una Credential no es absoluta. Debe evaluarse respecto de una Account:
+
+```
+CredentialAuthority(Credential, Account)
+```
+
+Por tanto, una misma Credential puede tener diferente autoridad sobre distintas Accounts.
+
+**D1.10 — La Autoridad de Credential Acota la Autoridad Solicitada**  
+Para que una Credential pueda intentar ejercer una Requested Authority:
+
+```
+RequestedAuthority ⊆ CredentialAuthority
+```
+
+debe cumplirse como condición necesaria.
+
+Por tanto:
+
+```
+RequestedAuthority ⊄ CredentialAuthority ⇒ Authorization invalid
+```
+
+Pero:
+
+```
+RequestedAuthority ⊆ CredentialAuthority
+```
+
+no basta por sí sola para producir `EffectiveAuthority`.
+
+---
+
+## Leyes de Session
+
+**D1.11 — Session es Autoridad Derivada**  
+Una Session deriva su autoridad de una Credential.
+
+Por tanto:
+
+```
+SessionAuthority(S) ⊆ CredentialAuthority(SourceCredential(S))
+```
+
+Esta es una ley de no ampliación.
+
+**D1.12 — Session no Puede Aumentar la Autoridad de Credential**  
+Nunca:
+
+```
+SessionAuthority ⊃ CredentialAuthority
+```
+
+Por tanto, una Session puede:
+
+- reduce;
+- restrict;
+- scope;
+- limit;
+- expire;
+
+pero nunca:
+
+- invent;
+- expand;
+- increase;
+
+la autoridad de su Credential.
+
+**D1.13 — Revocación de Credential y Usabilidad de Session**  
+Si una Credential deja de ser válida (por revocación u otra causa), cualquier Session que dependa de ella (aquella cuya autoridad derive de dicha Credential) deja de ser usable como fuente de autoridad.
+
+Formalmente:
+
+```
+CredentialRevoked(C) ⇒ ¬SessionIsUsable(S)
+```
+
+para toda Session `S` que tenga a `C` como `SourceCredential`.
+
+La Session **no cambia su identidad ni su estado persistente** (ej. sigue siendo `Active`). Sin embargo, **deja de contribuir a `EffectiveAuthority`**; su contribución se vuelve `∅` mientras la Credential no sea válida.
+
+Esto mantiene la distinción entre:
+
+- **Entity lifecycle** (identidad y estado persistente);
+- **Effective usability** (capacidad de contribuir a la autoridad).
+
+No es necesario cambiar el estado persistente de la Session a `Revoked` cuando la Credential se revoca; la invalidez se propaga por la regla de autoridad.
+
+---
+
+## Leyes de Delegación
+
+**D1.14 — Toda Delegación Tiene una Fuente**  
+Toda Delegation tiene exactamente una Identity fuente:
+
+```
+∀ delegation :
+    ∃! identity :
+        Source(identity, delegation)
+```
+
+La Source es la Identity que ejerce la autoridad delegable que origina esa Delegation.
+
+**D1.15 — Delegación Raíz**  
+Cuando una Delegation se origina directamente desde la autoridad soberana de una Account:
+
+```
+Source(D) = SovereignIdentity(Account(D))
+```
+
+Por tanto, si `Account X` tiene soberano `Identity A`, entonces `A → B` es una Delegation raíz válida si A posee la autoridad necesaria para delegar.
+
+**D1.16 — Delegación no Convierte a la Fuente en Soberana**  
+Si:
+
+```
+B → C
+```
+
+entonces B es source de esa Delegation, pero:
+
+```
+B ≠ SovereignIdentity(Account)
+```
+
+salvo que B ya fuera soberana independientemente.
+
+Es decir:
+
+```
+Source(D) ≠ SovereignIdentity(Account)
+```
+
+puede ser perfectamente válido. Esto permite delegación transitiva sin co-soberanía.
+
+---
+
+## Leyes de Autoridad para Delegación
+
+**D1.17 — Delegación Requiere Autoridad para Delegar**  
+Poseer una Capability cualquiera no es suficiente para producir una Delegation. Debe existir autoridad para delegar.
+
+`Delegate` es una CapabilityKind semántica especial del dominio de Kipio Account, no definida por el consumidor. Su semántica es: **autoriza el acto de delegar otras Capabilities**.
+
+Conceptualmente:
+
+```
+CanDelegate(I, Account)
+```
+
+requiere que I posea la Capability correspondiente a `Delegate` dentro del contexto aplicable.
+
+Por tanto:
+
+```
+Capability(Edit) ⇏ CanDelegate
+```
+
+mientras:
+
+```
+Capability(Delegate)
+```
+
+es la facultad que habilita el acto de delegar.
+
+**D1.18 — Delegate es una Capability**  
+`Delegate` no es una propiedad técnica adicional de una Capability (como `delegatable = true`), ni se introduce `DelegatableCapability` como concepto independiente. En cambio, `Delegate` es una Capability.
+
+Por tanto:
+
+```
+CanExercise(Delegate)
+```
+
+es la autoridad necesaria para realizar el acto de delegación.
+
+---
+
+## Autoridad Delegable
+
+La autoridad que una Identity puede delegar está limitada por:
+
+- la autoridad que realmente posee;
+- su autoridad para realizar `Delegate`;
+- las restricciones que el dominio aplique al acto de delegación.
+
+Por tanto:
+
+```
+DelegatableAuthority(I) ⊆ EffectiveAuthority(I)
+```
+
+y la existencia de `Delegate` es condición necesaria para producir una Delegation.
+
+**D1.19 — Autoridad Delegable no Puede Exceder la Autoridad Efectiva**  
+Formalmente:
+
+```
+DelegatableAuthority(I, A, context) ⊆ EffectiveAuthority(I, A, context)
+```
+
+Por tanto:
+
+> I cannot delegate authority that I cannot legitimately exercise.
+
+**D1.20 — La Capability Delegate no Significa que Todo sea Automáticamente Delegable**  
+La Capability `Delegate` autoriza el acto de delegar. No significa que el source pueda delegar una autoridad que nunca recibió.
+
+Por tanto:
+
+```
+Delegate + Edit
+```
+
+puede permitir:
+
+```
+delegate Edit
+```
+
+pero:
+
+```
+Delegate + Edit
+```
+
+no permite:
+
+```
+delegate Transfer
+```
+
+si:
+
+```
+Transfer ∉ EffectiveAuthority(source)
+```
+
+---
+
+## Leyes de Autoridad Delegada
+
+**D1.21 — La Autoridad Delegada está Acotada por la Fuente**  
+Ley central:
+
+```
+DelegatedAuthority(D) ⊆ DelegatableAuthority(Source(D))
+```
+
+Por tanto, si `B` puede delegar `Edit(X)`, entonces `B → C, Edit(X)` es válido. Pero `B → C, Transfer(X)` es inválido si B no puede delegar `Transfer(X)`.
+
+**D1.22 — La Delegación Puede Restringir**  
+La Delegation puede conferir una parte de la autoridad disponible:
+
+```
+DelegatedAuthority(D) ⊂ DelegatableAuthority(Source(D))
+```
+
+Esto es válido. La delegación no tiene que copiar toda la autoridad del source.
+
+Ejemplo:
+
+```
+B: Edit, View, Share, Delegate
+B → C: View
+```
+
+es perfectamente válido.
+
+**D1.23 — La Delegación no Puede Expandir**  
+Nunca:
+
+```
+DelegatedAuthority(D) ⊃ DelegatableAuthority(Source(D))
+```
+
+Una Delegation sólo puede:
+
+- preserve;
+- restrict;
+
+autoridad. Nunca expand.
+
+---
+
+## Leyes de Delegación Transitiva
+
+**D1.24 — Delegación Transitiva**  
+Si:
+
+```
+A → B
+```
+
+y B recibió autoridad suficiente para delegar, entonces B puede producir:
+
+```
+B → C
+```
+
+sin convertirse en soberana de la Account original.
+
+Por tanto:
+
+```
+A
+│
+└── delegates → B
+                 │
+                 └── delegates → C
+```
+
+es una cadena de autoridad derivada.
+
+**D1.25 — La Delegación Transitiva es Monotónica hacia Abajo**  
+La autoridad no puede aumentar a lo largo de una cadena.
+
+Para:
+
+```
+D1: A → B
+D2: B → C
+```
+
+debe cumplirse:
+
+```
+DelegatedAuthority(D2) ⊆ DelegatedAuthority(D1)
+```
+
+si D2 deriva exclusivamente de la autoridad recibida mediante D1.
+
+Por tanto:
+
+```
+C authority ⊆ B authority ⊆ A authority
+```
+
+respecto de la cadena de delegación correspondiente.
+
+**D1.26 — La Delegación Transitiva Preserva la Soberanía**  
+Para:
+
+```
+A → B → C
+```
+
+la soberanía permanece:
+
+```
+Sovereign(Account) = A
+```
+
+aunque:
+
+```
+Source(D2) = B
+y
+Delegatee(D2) = C
+```
+
+Por tanto:
+
+```
+Source ≠ Sovereign
+```
+
+en general.
+
+---
+
+## Leyes de Restricción de Delegación
+
+**D1.27 — El Delegatee Recibe No Más de lo Delegado Explícitamente**  
+El Delegatee no recibe automáticamente toda la autoridad del source.
+
+Si:
+
+```
+A → B {Edit, View}
+```
+
+entonces:
+
+```
+B delegated authority = {Edit, View}
+```
+
+no:
+
+```
+B delegated authority = all A authority
+```
+
+**D1.28 — Las Restricciones son Monotónicas**  
+Si una Delegation contiene Restrictions:
+
+```
+DelegatedAuthority(D) + Restrictions(D)
+```
+
+la autoridad resultante no puede superar la autoridad delegada original.
+
+Formalmente:
+
+```
+EffectiveAuthority(delegatee) ⊆ DelegatedAuthority(D)
+```
+
+antes de considerar otras restricciones posteriores.
+
+---
+
+## Leyes de Autoridad Efectiva
+
+**D1.29 — La Autoridad Efectiva es Contextual**  
+No existe una única `EffectiveAuthority` absoluta para una Identity. Debe evaluarse respecto de:
+
+- Identity;
+- Account;
+- Context;
+- Time;
+- Authorization State.
+
+Por tanto:
+
+```
+EffectiveAuthority(I, Account X, Context A)
+```
+
+puede ser diferente de:
+
+```
+EffectiveAuthority(I, Account X, Context B)
+```
+
+El `Context` es un **parámetro de entrada** para la función que deriva `EffectiveAuthority`. No forma parte de la identidad del Value Object resultante. La igualdad de `EffectiveAuthority` se determina exclusivamente por el conjunto de Capabilities que resulta de la derivación.
+
+**D1.30 — La Autoridad Efectiva es Derivada**  
+`EffectiveAuthority` no es una concesión independiente. Se deriva de las fuentes y restricciones reconocidas por `AuthorizationState`.
+
+Conceptualmente:
+
+```
+Effective Authority =
+Available Authority
+∩ Credential Authority
+∩ Session Authority
+∩ Delegated Authority
+∩ Scope
+∩ Restrictions
+∩ Temporal Conditions
+∩ Policy Effects
+∩ Execution Context
+```
+
+El `Execution Context` y demás condiciones son **inputs de la derivación**; no son parte del valor resultante. No todas las intersecciones son necesariamente literales en implementación; expresan la semántica de monotonic restriction.
+
+**D1.31 — La Autoridad Derivada no Puede Aumentar**  
+Toda transformación de autoridad derivada debe ser monotónica hacia abajo.
+
+Si:
+
+```
+A₂
+```
+
+es autoridad derivada de:
+
+```
+A₁
+```
+
+entonces:
+
+```
+A₂ ⊆ A₁
+```
+
+Esto aplica a:
+
+- Session;
+- Delegation;
+- Restriction;
+- Scope limitation;
+- Temporal limitation;
+
+y demás mecanismos cuyo propósito sea derivar o restringir autoridad.
+
+---
+
+## Leyes de Autorización
+
+**D1.32 — Autorización Requiere Autoridad Efectiva**  
+Una Authorization sólo puede aceptarse si:
+
+```
+RequestedAuthority ⊆ EffectiveAuthority
+```
+
+y se cumplen las demás condiciones de validación.
+
+Por tanto:
+
+```
+RequestedAuthority ⊄ EffectiveAuthority ⇒ Authorization invalid
+```
+
+**D1.33 — Proof no Crea Autoridad**  
+Una Proof válida demuestra evidencia criptográfica. No modifica:
+
+- Capabilities;
+- Credential Authority;
+- Session Authority;
+- Delegated Authority;
+- Effective Authority.
+
+Por tanto:
+
+```
+ValidProof ⇏ AuthorityExists
+```
+
+**D1.34 — Autenticación no Crea Autoridad**  
+De igual forma:
+
+```
+AuthenticatedCredential ⇏ UnlimitedAuthority
+```
+
+Authentication determina la fuente de evidencia. Authorization determina qué autoridad puede ejercerse.
+
+---
+
+## Leyes de Policy
+
+**D1.35 — Los Policy Effects Modifican Authorization State**  
+Una Policy reconocida puede producir un `PolicyEffect` que genere una transición válida de `AuthorizationState`.
+
+Por tanto:
+
+```
+Policy
+    ↓
+Policy Effect
+    ↓
+Authorization State Transition
+```
+
+**D1.36 — Policy no Puede Violar Invariantes del Dominio**  
+Un `PolicyEffect` no puede producir un `AuthorizationState` que viole las leyes fundamentales del dominio.
+
+Por ejemplo, una Policy no puede producir:
+
+```
+Account → two sovereign Identities
+```
+
+ni:
+
+```
+Delegation → authority greater than source authority
+```
+
+Los `PolicyEffects` están sujetos a las mismas invariantes que cualquier otra transición.
+
+---
+
+## Leyes de Authorization State
+
+**D1.37 — Authorization State es el Estado Operativo de Autoridad**  
+Las relaciones entre:
+
+- Account;
+- Credential;
+- Credential Authority;
+- Session;
+- Delegation;
+- Capability;
+- Policy Effect;
+- Restriction;
+
+cuando forman parte de la autoridad operacional de una Account, pertenecen al `AuthorizationState`.
+
+Por tanto, `EffectiveAuthority` debe poder derivarse del estado relevante.
+
+**D1.38 — Preservación de la Transición de Estado**  
+Toda `AuthorizationStateTransition` válida debe preservar las invariantes del dominio.
+
+Formalmente:
+
+```
+ValidState(S)
+∧
+ValidTransition(S, T)
+    ⇒
+ValidState(T)
+```
+
+Esta ley es especialmente importante para:
+
+- Credential registration;
+- Credential revocation;
+- Session creation;
+- Session revocation;
+- Delegation creation;
+- Delegation revocation;
+- Capability changes;
+- Policy Effects.
+
+---
+
+## Leyes de Revocación
+
+**D1.39 — Revocación Elimina Usabilidad, no Identidad Histórica**  
+Revocar una Entity con lifecycle (Credential, Session, Delegation) no crea una nueva Entity.
+
+Por ejemplo:
+
+```
+Delegation D: active → revoked
+```
+
+sigue siendo:
+
+```
+DelegationId = D
+```
+
+**D1.40 — Delegación Revocada no Contribuye a Autoridad Efectiva**  
+Si:
+
+```
+Delegation D = revoked
+```
+
+entonces:
+
+```
+DelegatedAuthority(D)
+```
+
+no puede contribuir a `EffectiveAuthority`.
+
+Por tanto:
+
+```
+Revoked(D) ⇒ EffectiveAuthority derived through D = ∅
+```
+
+en el sentido de autoridad utilizable.
+
+**D1.41 — Revocación es Monotónica para la Autoridad**  
+Revocar una fuente de autoridad no puede aumentar la autoridad efectiva.
+
+Si:
+
+```
+State₁ → revoke(D) → State₂
+```
+
+entonces:
+
+```
+EffectiveAuthority(State₂) ⊆ EffectiveAuthority(State₁)
+```
+
+para el contexto afectado.
+
+---
+
+## Leyes de Scope
+
+**D1.42 — Scope Restringe Autoridad**  
+Scope no crea una nueva Capability. Restringe dónde puede ejercerse una Capability existente.
+
+Por tanto:
+
+```
+Capability(Upload) + Scope(Album123)
+```
+
+representa:
+
+```
+Upload over Album123
+```
+
+y no:
+
+```
+Upload everywhere
+```
+
+**D1.43 — Scope no Puede Expandir la Autoridad Fuente**  
+Un Scope derivado no puede ampliar el Scope de la autoridad fuente.
+
+```
+DerivedScope ⊆ SourceScope
+```
+
+cuando la autoridad es derivada.
+
+---
+
+## Leyes de Restricción
+
+**D1.44 — Las Restricciones no Expanden**  
+Una Restriction sólo puede reducir las condiciones de ejercicio.
+
+Por tanto:
+
+```
+Authority after Restriction ⊆ Authority before Restriction
+```
+
+**D1.45 — Las Restricciones Componen Monotónicamente**  
+Si una autoridad está sometida a Restriction A y después a Restriction B, entonces:
+
+```
+Authority(A + B) ⊆ Authority(A)
+```
+
+y:
+
+```
+Authority(A + B) ⊆ Authority(B)
+```
+
+cuando ambas representan restricciones sobre la misma autoridad.
+
+---
+
+## Leyes de Ejecución
+
+**D1.46 — Ejecución Requiere Execution Context Válido**  
+El Execution Engine sólo debe recibir:
+
+```
+Valid(ExecutionContext)
+```
+
+Por tanto:
+
+```
+Invalid ExecutionContext ⇒ Execution must not be materialized
+```
+
+**D1.47 — El Execution Engine no Decide Autoridad**  
+El Execution Engine consume la decisión `ExecutionContext`, pero no redefine:
+
+- EffectiveAuthority;
+- Authorization;
+- Capability;
+- Delegation;
+- Policy.
+
+**D1.48 — Ejecución no Crea Autoridad**  
+Una Execution exitosa no produce por sí misma:
+
+- Capability;
+- Credential Authority;
+- Delegation;
+- Sovereignty;
+
+salvo que una transición explícita del dominio lo establezca.
+
+---
+
+## Leyes de Gas y Sponsorship
+
+**D1.49 — Pago no Concede Autoridad**  
+Si:
+
+```
+Sponsor pays Execution
+```
+
+no se sigue:
+
+```
+Sponsor may execute
+```
+
+Por tanto:
+
+```
+GasPayment ≠ Authority
+```
+
+y:
+
+```
+Sponsor ≠ Sovereign
+```
+
+---
+
+## Principio Global de Monotonicidad de Autoridad
+
+**D1.50 — No-Expansión de Autoridad**  
+Ningún mecanismo de derivación de autoridad puede crear una autoridad superior a la autoridad que legítimamente recibe.
+
+Para toda autoridad derivada:
+
+```
+DerivedAuthority ⊆ SourceAuthority
+```
+
+Esto aplica a:
+
+- Session;
+- Delegation;
+- Restriction;
+- Scope;
+- Policy-derived state;
+
+según su relación de derivación.
+
+La única forma de aumentar la autoridad efectiva de una Identity es una transición de `AuthorizationState` legítima que modifique la autoridad disponible en su fuente correspondiente.
+
+---
+
+## Teorema de la Cadena de Delegación
+
+Las leyes anteriores permiten expresar la propiedad fundamental de las cadenas de delegación.
+
+Para una cadena:
+
+```
+I₀
+ │
+ └── D₁ → I₁
+             │
+             └── D₂ → I₂
+                         │
+                         └── D₃ → I₃
+```
+
+se cumple:
+
+```
+Authority(I₃) ⊆ Authority(I₂) ⊆ Authority(I₁) ⊆ Authority(I₀)
+```
+
+respecto de la autoridad derivada por esa cadena.
+
+Y simultáneamente:
+
+```
+SovereignIdentity(Account) = I₀
+```
+
+si I₀ es la fuente raíz.
+
+Por tanto:
+
+```
+I₁ ≠ sovereign
+I₂ ≠ sovereign
+I₃ ≠ sovereign
+```
+
+simplemente por participar en la cadena.
+
+---
+
+## La Delegación no Puede Escapar de su Origen
+
+Una consecuencia fundamental es:
+
+Una Delegation no puede escapar semánticamente de la autoridad de su origen.
+
+Si:
+
+```
+A → B
+```
+
+y:
+
+```
+B → C
+```
+
+entonces C no puede obtener:
+
+```
+authority X
+```
+
+si B no recibió:
+
+```
+authority X
+```
+
+de A o de otra fuente legítima independiente.
+
+Formalmente:
+
+```
+X ∈ Authority(C) ⇒ X ∈ Authority(B)
+```
+
+para autoridad derivada exclusivamente de la cadena.
+
+Y:
+
+```
+X ∈ Authority(B) ⇒ X ∈ Authority(A)
+```
+
+si B recibió X exclusivamente mediante A.
+
+---
+
+## Múltiples Fuentes Independientes
+
+Una Identity puede recibir autoridad de más de una fuente.
+
+Por ejemplo:
+
+```
+A → B : Edit
+C → B : Transfer
+```
+
+Entonces:
+
+```
+Authority(B) = AuthorityFrom(A) ∪ AuthorityFrom(C)
+```
+
+Por tanto, **no** se formaliza que toda la autoridad de B siempre es subconjunto de la autoridad de A.
+
+La ley correcta es:
+
+```
+AuthorityDerivedFrom(A, B) ⊆ Authority(A)
+```
+
+La transitividad aplica por provenance/source de la autoridad, no necesariamente a toda la autoridad acumulada de la Identity.
+
+---
+
+## Procedencia de la Autoridad Derivada
+
+La semántica de una autoridad derivada debe preservar conceptualmente su origen.
+
+No significa introducir necesariamente un nuevo Entity o Value Object. Significa que la formalización debe poder expresar:
+
+```
+Authority B
+    ├── derived from A
+    └── derived from C
+```
+
+y:
+
+```
+Delegation B → D
+```
+
+sólo puede reutilizar cada parte de autoridad según la fuente que legítimamente la habilita.
+
+Debe cumplirse:
+
+```
+RequestedDelegatedAuthority ⊆ B's DelegatableAuthority
+```
+
+y esa autoridad debe estar respaldada por fuentes legítimas.
+
+---
+
+## Definición Formal de Delegation
+
+Una Delegation es una Entity mediante la cual una Identity que posee autoridad delegable confiere a un Delegatee una autoridad derivada, explícitamente delimitada por Scope, Restrictions y demás condiciones aplicables, sin transferir la soberanía de la Account de origen.
+
+Sus leyes fundamentales son:
+
+1. Exactly one source.
+2. Source must possess Delegate authority.
+3. Source must possess the authority being delegated.
+4. `DelegatedAuthority ⊆ DelegatableAuthority(Source)`.
+5. DelegatedAuthority may be strictly smaller than the source's delegatable authority.
+6. Delegation cannot increase authority.
+7. Delegatee does not become sovereign.
+8. Transitive delegation is permitted when the delegatee possesses Delegate authority.
+9. Transitive delegation cannot exceed the authority received through the relevant source chain.
+10. Revocation removes the delegation's contribution to EffectiveAuthority.
+11. Delegation does not transfer Capability ownership or Identity sovereignty.
+12. Multiple independent authority sources may coexist.
+
+---
+
+## Resumen de Invariantes de D1
+
+Kipio Account preserva las siguientes invariantes:
+
+**D1.1**  
+Every Account has exactly one sovereign Identity.
+
+**D1.2**  
+Authorization of another Identity never creates co-sovereignty.
+
+**D1.3**  
+Every Delegation has exactly one source Identity.
+
+**D1.4**  
+A root Delegation originates from the sovereign Identity of the Account or from another legitimate authority source recognized by Authorization State.
+
+**D1.5**  
+Creating a Delegation never changes Account sovereignty.
+
+**D1.6**  
+Delegation requires authority to exercise Delegate.
+
+**D1.7**  
+Delegated Authority must be contained within the source's Delegatable Authority.
+
+**D1.8**  
+Delegatable Authority must be contained within the authority legitimately available to the source.
+
+**D1.9**  
+Delegation may restrict the authority received.
+
+**D1.10**  
+Delegation may never expand the authority received.
+
+**D1.11**  
+A Session cannot exceed the authority of its Credential.
+
+**D1.12**  
+A derived authority cannot exceed its source authority.
+
+**D1.13**  
+Delegation may be transitive.
+
+**D1.14**  
+Transitive delegation cannot exceed the authority received through the corresponding delegation chain.
+
+**D1.15**  
+A Delegatee does not become sovereign merely by receiving authority.
+
+**D1.16**  
+Revocation of a Delegation removes its authority contribution without creating a new Delegation Entity.
+
+**D1.17**  
+Authority from independent sources may be combined.
+
+**D1.18**  
+A delegation chain constrains only the authority derived through that chain, not unrelated authority independently obtained by the same Identity.
+
+**D1.19**  
+Effective Authority is contextual and derived. The context is an input parameter, not a stored attribute of the Value Object.
+
+**D1.20**  
+Authorization is valid only when Requested Authority is contained within Effective Authority and all other Authorization Validation conditions hold.
+
+---
+
+## Relación entre DelegatableAuthority y EffectiveAuthority
+
+La formulación correcta es:
+
+```
+DelegatableAuthority ⊆ EffectiveAuthority
+```
+
+y `Delegate` es una Capability necesaria para realizar el acto de delegación.
+
+La semántica formal queda:
+
+```
+Effective Authority
+        │
+        ├── authority I may exercise
+        │
+        ▼
+Delegatable Authority
+        │
+        ├── authority I may confer
+        │
+        ▼
+Delegated Authority
+        │
+        └── restricted subset
+```
+
+con:
+
+```
+DelegatedAuthority ⊆ DelegatableAuthority ⊆ EffectiveAuthority
+```
+
+y además:
+
+```
+CanDelegate ⇐ EffectiveAuthority includes Delegate
+```
+
+---
+
+## Modelo Conceptual de D1
+
+```
+                     Identity X
+                         │
+                         │ sovereign
+                         ▼
+                      Account X
+                         │
+                         ▼
+                Authorization State
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+        Effective Authority      Delegate
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+               Delegatable Authority
+                         │
+                    Delegation
+                         │
+                         ▼
+                     Identity B
+                         │
+                         ▼
+               Delegated Authority
+                         │
+                         ├── restricted
+                         │
+                         ▼
+               B's Effective Authority
+                         │
+                    Delegate?
+                         │
+                         ▼
+               B's Delegatable Authority
+                         │
+                    Delegation
+                         │
+                         ▼
+                     Identity C
+```
+
+Las dos propiedades fundamentales son:
+
+```
+DelegatedAuthority ⊆ DelegatableAuthority(source) ⊆ EffectiveAuthority(source)
+```
+
+y:
+
+```
+SovereignIdentity(Account X) = X
+```
+
+independientemente de cuántas delegaciones existan.
+
+**Nota sobre la formalización:** No se formaliza `Authority(C) ⊆ Authority(B) ⊆ Authority(A)` como una propiedad global de las Identities, ya que una Identity puede recibir autoridad de múltiples fuentes. La formulación correcta es por cadena/provenance:
+
+```
+AuthorityDerivedThrough(D₂) ⊆ AuthorityDerivedThrough(D₁)
+```
+
+y sólo si `D₂` deriva de `D₁`. La autoridad total de una Identity puede ser la unión de autoridad proveniente de distintas cadenas.
+
+# D2 — PolicyEffect y la transformación del estado
+
+## Definición
+
+`PolicyEffect` representa un cambio semántico que una Policy produce sobre `AuthorizationState`.  
+Es un **Value Object**: su igualdad se define por su tipo y parámetros, y no posee identidad propia.
+
+Una `Policy` es una **secuencia ordenada** de efectos que debe consumirse de forma atómica, validando previamente todos sus componentes.
+
+---
+
+## Decisiones de dominio
+
+1. **`PolicyEffect` es un descriptor semántico de una transformación de `AuthorizationState`.**  
+   Su significado está completamente determinado por su tipo y parámetros.
+
+2. **`PolicyEffect` no sabe cómo mutar el estado.**  
+   No posee un método `Apply()`. La responsabilidad de aplicar el efecto corresponde al módulo de `AuthorizationState`, que conoce sus propias invariantes.  
+   Esto preserva la separación:
+
+   ```text
+   PolicyEffect
+       =
+   what change is requested/recognized
+
+   AuthorizationStateTransition
+       =
+   valid transformation of state
+   ```
+
+3. **Una Policy es una secuencia ordenada de efectos.**  
+   No es un conjunto (`set`), porque el orden importa semánticamente.  
+   Por ejemplo, `DisableCapability(X)` seguido de `EnableCapability(X)` produce un estado diferente que el orden inverso.  
+   El dominio no asume conmutatividad sin demostración.
+
+4. **El consumo de una Policy es atómico.**  
+   Se aplican **todos** los efectos de la secuencia, en el orden dado, o **ninguno**.  
+   No se permiten estados intermedios ni consumos parciales.
+
+5. **Efectos contradictorios invalidan la Policy completa.**  
+   Si una secuencia contiene efectos que se contradicen lógicamente sobre el mismo estado (ej. `DisableCapability(X)` y `EnableCapability(X)`), la transición es inválida y no se produce ningún cambio de estado.  
+   La Policy representa una **decisión coherente**, no un programa imperativo.
+
+6. **La opcionalidad de pasos se resuelve en la construcción externa de la Policy.**  
+   El contexto externo (ej. Recovery, Economics, Governance) decide qué efectos incluye.  
+   El `Runtime` no decide saltarse pasos dentro de una Policy consumida.  
+   Por tanto, el dominio no modela "pasos opcionales" en el consumo; solo secuencias de efectos **todas ellas obligatorias para esa decisión**.
+
+7. **Los efectos independientes pueden conmutar.**  
+   No se asume, pero puede demostrarse como propiedad.  
+   Por ejemplo, `RevokeCredential(A)` y `RevokeSession(B)` probablemente conmutan si afectan a Entities distintas.  
+   Esa conmutatividad es un **teorema derivado**, no una suposición del dominio.
+
+8. **El catálogo de efectos es semánticamente cerrado, pero extensible por decisión del dominio.**  
+   El conjunto inicial de constructores cubre los casos conocidos.  
+   Si el dominio necesita nuevos efectos en el futuro, se añaden como nuevos constructores, respetando las leyes de orden, atomicidad y no contradicción.
+
+9. **Modificación de condiciones de autorización.**  
+   El efecto correspondiente se formaliza como `ModifyRestriction(Capability, optional Scope, Restriction)`, ya que las condiciones modificables en `AuthorizationState` son `Restriction` asociadas a Capabilities y Scopes.  
+   Esto no introduce nuevas entidades; `Restriction` ya es un Value Object definido en el dominio.
+
+---
+
+## Formal Domain Laws
+
+### D2.1 — PolicyEffect como descriptor semántico
+
+`PolicyEffect` es un Value Object. Su igualdad se define por tipo y parámetros.
+
+```text
+PolicyEffect
+    ::=
+    RevokeCredential(CredentialId)
+  | RevokeSession(SessionId)
+  | RevokeDelegation(DelegationId)
+  | DisableCapability(Capability, optional Scope)
+  | EnableCapability(Capability, optional Scope)
+  | ModifyRestriction(Capability, optional Scope, Restriction)
+```
+
+**Ley D2.1.1**  
+Dos `PolicyEffect` son iguales si y solo si tienen el mismo constructor y los mismos parámetros semánticos.
+
+**Ley D2.1.2**  
+`PolicyEffect` no contiene identidad propia. No existe `PolicyEffectId`.
+
+---
+
+### D2.2 — Policy como secuencia ordenada
+
+Una `Policy` es una secuencia ordenada de cero o más `PolicyEffect`.
+
+```text
+Policy = ordered sequence of PolicyEffects
+```
+
+**Ley D2.2.1**  
+El orden de los efectos en la secuencia es parte del significado de la Policy.  
+Dos Policies con los mismos efectos pero en distinto orden son semánticamente diferentes, a menos que se demuestre que todos sus efectos conmutan.
+
+**Ley D2.2.2**  
+Una Policy vacía es válida. Su consumo no produce cambios en `AuthorizationState`.
+
+---
+
+### D2.3 — Atomicidad del consumo
+
+El consumo de una Policy es una **transición atómica** sobre `AuthorizationState`.
+
+**Ley D2.3.1**  
+Para una Policy `P = [E1, E2, ..., En]` y un estado `S`:
+
+```text
+ConsumePolicy(P, S)
+    =
+    if all effects E1..En are applicable and consistent in S
+        then ApplyAll(P, S) -> S'
+        else S (no transition)
+```
+
+Es decir, o bien se produce un nuevo estado `S'`, o bien el estado permanece inalterado.  
+No existe estado intermedio.
+
+**Ley D2.3.2**  
+`ApplyAll` aplica los efectos secuencialmente en el orden dado, pero la validación de todos los efectos ocurre **antes** de modificar el estado.
+
+---
+
+### D2.4 — Aplicabilidad de efectos
+
+Un efecto es **aplicable** si el estado actual contiene las Entities y condiciones que el efecto requiere.
+
+**Ley D2.4.1**  
+`RevokeCredential(id)` es aplicable solo si `id` está reconocido en `AuthorizationState`.
+
+**Ley D2.4.2**  
+`DisableCapability(cap, scope)` es aplicable solo si la Capability existe para esa Account y Scope.
+
+**Ley D2.4.3**  
+`ModifyRestriction(cap, scope, newRestriction)` es aplicable solo si:
+- La Capability `cap` existe en `AuthorizationState` para la Account.
+- Si `scope` está presente, la Capability está asociada a ese Scope.
+- La Restricción anterior (si existe) puede ser reemplazada por `newRestriction` sin violar invariantes.
+- `newRestriction` es semánticamente válida (ej. valores dentro de rangos permitidos).
+
+---
+
+### D2.5 — Efecto inválido rechaza toda la Policy
+
+**Ley D2.5.1**  
+Si al menos un efecto de la secuencia no es aplicable, la Policy completa es rechazada.  
+No se aplica ningún efecto, ni siquiera los aplicables.
+
+Esto preserva la atomicidad y la coherencia de la decisión.
+
+---
+
+### D2.6 — Efectos contradictorios
+
+**Ley D2.6.1**  
+Una secuencia de efectos es **inconsistente** si contiene efectos que, aplicados en el orden dado, producen un estado que viola una invariante fundamental del dominio o que contradice una decisión previa dentro de la misma secuencia.
+
+**Caso explícito:**  
+`DisableCapability(X)` y `EnableCapability(X)` sobre la misma `Capability` y `Scope` en la misma Policy, sin que haya otro efecto intermedio que modifique el significado de esa Capability, constituye una contradicción.
+
+**Ley D2.6.2**  
+Una Policy inconsistente es rechazada en su totalidad.
+
+---
+
+### D2.7 — Efectos independientes pueden conmutar
+
+**Ley D2.7.1**  
+Dos efectos `Ea` y `Eb` son independientes si afectan a conjuntos disjuntos de Entities o a atributos ortogonales del estado.
+
+**Ley D2.7.2**  
+Para efectos independientes, se cumple:
+
+```text
+Apply(Eb, Apply(Ea, S)) == Apply(Ea, Apply(Eb, S))
+```
+
+Esta propiedad debe demostrarse para cada combinación concreta de efectos independientes. No es una suposición global.
+
+---
+
+### D2.8 — Preservación de invariantes del dominio
+
+**Ley D2.8.1**  
+Toda transición de `AuthorizationState` producida por el consumo de una Policy válida debe preservar:
+
+- La soberanía única de la Account (`SovereignIdentity` permanece inmutable).
+- La no expansión de autoridad (ningún efecto puede crear autoridad que no existiera en las fuentes legítimas).
+- La integridad de las Entities reconocidas (su identidad permanece estable; solo cambia su estado/lifecycle).
+- La coherencia de las relaciones de delegación y sesión.
+
+---
+
+## Modelo conceptual de D2
+
+```text
+            EXTERNAL CONTEXT
+                  │
+                  │ produce decisión
+                  ▼
+               POLICY
+                  │
+                  │ reconocida por Account
+                  ▼
+         SECUENCIA ORDENADA
+         DE POLICY EFFECTS
+                  │
+                  ▼
+         VALIDACIÓN COMPLETA
+    (aplicabilidad + consistencia)
+             /          \
+           Sí            No
+            │             │
+            ▼             ▼
+     TRANSFORMACIÓN     RECHAZO
+    (atómica, estado    (estado
+      nuevo S')        inalterado)
+```
+
+La separación clave:
+
+```text
+PolicyEffect
+    = descriptor de cambio solicitado
+
+AuthorizationStateTransition
+    = transformación válida del estado
+
+Runtime / PolicyConsumption
+    = orquestación de la validación y aplicación atómica
+```
+
+---
+
+## Principios invariantes de D2
+
+1. **Una Policy es una decisión, no un programa.**  
+   Su secuencia de efectos representa una intención coherente y completa.
+
+2. **La atomicidad es una propiedad fundamental del consumo de Policies.**  
+   El Authorization State nunca refleja un consumo parcial de una Policy.
+
+3. **La contradicción entre efectos en la misma Policy invalida toda la decisión.**  
+   El dominio no admite ambigüedad en las decisiones externas reconocidas.
+
+4. **La aplicabilidad de cada efecto es condición necesaria para toda la transición.**  
+   Un solo efecto inválido impide toda la transición.
+
+5. **El orden es semántico.**  
+   El dominio no simplifica el orden a un conjunto sin una demostración explícita de conmutatividad.
+
+6. **La identidad de las Entities se preserva.**  
+   Los efectos como `RevokeCredential(id)` se refieren a la misma Entity por su `id` estable.  
+   La transición solo cambia el estado de la Entity (ej. de `Active` a `Revoked`), no su identidad.
+
+---
+
+## Relación con otros módulos del dominio
+
+- **`AuthorizationState`**: Sujeto de la transformación. Expone las funciones de validación y aplicación de efectos.
+- **`PolicyConsumption`**: Proceso que orquesta la validación y aplicación atómica. Puede ser parte del Runtime o de un módulo específico.
+- **`Recovery`, `Economics`, `Governance`**: Contextos externos que producen Policies. No necesitan conocer el mecanismo interno de aplicación; generan la secuencia de efectos que su decisión implica.
+- **`Runtime`**: Coordina la recepción de la Policy, su validación y su consumo atómico, sin saltarse pasos ni modificar la decisión externa.
+# D3 — Identidad de Entity y Reconocimiento en Estado
+
+## Contexto
+
+En `Kipio Account`, `Credential`, `Session` y `Delegation` son **Entities**: poseen identidad propia estable (`CredentialId`, `SessionId`, `DelegationId`) que permanece invariable durante todo su ciclo de vida.
+
+La formalización del dominio distingue dos propiedades conceptuales que, aunque relacionadas, son independientes:
+
+1. **Identidad de la Entity** — `EntityId(updated) == EntityId(original)`.
+2. **Reconocimiento en el estado** — `EntityId ∈ AuthorizationState` después de una transición.
+
+Una Entity puede preservar su identidad sin estar reconocida en el estado (por ejemplo, si nunca fue registrada), o puede estar reconocida pero con un estado que la hace inutilizable (revocada o temporalmente inválida).
+
+El propósito de esta sección es formalizar la separación entre identidad de Entity, reconocimiento en `AuthorizationState` y usabilidad efectiva, estableciendo que **una Entity revocada o temporalmente inválida permanece representada en `AuthorizationState`**, de modo que el estado distinga entre "nunca reconocida" y "reconocida y posteriormente deshabilitada".
+
+---
+
+## Decisiones de dominio
+
+1. **`AuthorizationState` es un registro operativo-histórico.**  
+   Conserva la representación de todas las Entities que han sido reconocidas por la Account, incluso después de que su estado cambie (por ejemplo, tras una revocación).  
+   Esto permite distinguir:
+   - `never recognized`
+   - `recognized and currently usable`
+   - `recognized but currently unusable` (por revocación o invalidez temporal)
+
+2. **La identidad de una Entity es inmutable.**  
+   El `Id` de una `Credential`, `Session` o `Delegation` nunca cambia durante su ciclo de vida.  
+   Las transiciones modifican el **estado** (ej. `Active → Revoked`), pero no el `Id`.
+
+3. **Cada Entity tiene su propio ciclo de vida, definido por el dominio.**  
+   - **Credential**: `Active ↔ Suspended → Revoked` (el DDD contempla `suspended` y `reactivated`).  
+   - **Session**: `Active → Revoked`; además, posee un intervalo de validez temporal (`validFrom`, `validUntil`) que determina su usabilidad en el tiempo.  
+   - **Delegation**: `Active → Revoked`; también posee un intervalo de validez temporal.  
+   **No existe un `EntityStatus` universal.** Cada Entity utiliza su propio tipo de estado.
+
+4. **La expiración no es un estado persistente.**  
+   Para `Session` y `Delegation`, la condición "expirado" se deriva de su intervalo de validez y del tiempo de evaluación. Una Session o Delegation con `status = Active` pero con `now > validUntil` es **temporalmente inválida**, pero su estado persistente sigue siendo `Active`. La invalidez temporal no cambia el estado de la Entity; solo afecta a su contribución a `EffectiveAuthority`.
+
+5. **La revocación de una Credential afecta a Sessions, no a Delegations por dependencia estructural.**  
+   Una `Session` depende explícitamente de una `Credential` (tiene un `CredentialId`). Por tanto, si la Credential se revoca, la Session deja de ser usable (su fuente de autoridad es inválida).  
+   Una `Delegation`, en cambio, depende de una `Identity` fuente (`SourceIdentityId`), no de una Credential concreta. La invalidez de una Credential puede afectar a una Delegation **solo si la autoridad delegada proviene de esa Credential** (por provenance), pero no es una dependencia estructural universal. Por tanto, **no se impone una regla general que invalide todas las Delegations al revocar una Credential**.
+
+6. **Las transiciones de estado (ej. revocación) no eliminan la Entity del estado.**  
+   La revocación cambia el estado de la Entity (ej. de `Active` a `Revoked`), pero la Entity permanece reconocida en `AuthorizationState`. Esto preserva el historial y permite distinguir "nunca reconocida" de "reconocida y revocada".
+
+7. **Las leyes de transición deben probar dos propiedades separadas:**
+   - **Entity identity preservation**: `EntityId(new) == EntityId(old)`.
+   - **State membership preservation**: `EntityId ∈ AuthorizationState(new)`.
+
+8. **`AuthorizationState` no contiene funciones mutadoras.**  
+   Las transiciones (revocación, creación, etc.) son responsabilidad de `AccountTransitions` o `PolicyConsumption`. `AuthorizationState` es una estructura de datos con invariantes, no un módulo que muta su propio estado.
+
+---
+
+## Formal Domain Laws
+
+### D3.1 — Inmutabilidad de la identidad
+
+Para toda transición que modifique una Entity `E` (Credential, Session o Delegation):
+
+**Ley D3.1.1**  
+`EntityId(E') == EntityId(E)`
+
+**Ley D3.1.2**  
+El identificador de una Entity nunca se reasigna a otra Entity.
+
+---
+
+### D3.2 — Permanencia del reconocimiento en el estado
+
+**Ley D3.2.1**  
+Si una Entity `E` está reconocida en `AuthorizationState` en un estado `S`, entonces después de cualquier transición válida que afecte a `E`, `EntityId(E)` continúa perteneciendo al conjunto de Entities reconocidas en `S'`.
+
+**Ley D3.2.2**  
+La revocación (o cualquier cambio de estado) no elimina la Entity del estado. Solo cambia su `status` u otros atributos relevantes.
+
+---
+
+### D3.3 — Ciclos de vida específicos (no universales)
+
+Cada Entity posee su propio tipo de estado y reglas de transición:
+
+#### Credential
+- Estados: `Active`, `Suspended`, `Revoked`.
+- Transiciones válidas:
+  - `Active ↔ Suspended` (posible reactivación).
+  - `Active → Revoked` (terminal).
+  - `Suspended → Revoked` (terminal).
+  - No se permite `Revoked → Active` ni `Revoked → Suspended`.
+
+#### Session
+- Estados: `Active`, `Revoked`.
+- Además, posee `validFrom` y `validUntil` (tiempo de validez).
+- La condición `now < validFrom` o `now > validUntil` hace que la Session sea **temporalmente inválida**, pero su estado persistente sigue siendo `Active`.
+- Transiciones válidas:
+  - `Active → Revoked` (terminal).
+  - No se permite `Revoked → Active`.
+
+#### Delegation
+- Estados: `Active`, `Revoked`.
+- Además, posee `validFrom` y `validUntil` (tiempo de validez).
+- La condición `now < validFrom` o `now > validUntil` hace que la Delegation sea **temporalmente inválida**, pero su estado persistente sigue siendo `Active`.
+- Transiciones válidas:
+  - `Active → Revoked` (terminal).
+  - No se permite `Revoked → Active`.
+
+**Ley D3.3.1**  
+No existe un `EntityStatus` universal. Cada Entity utiliza su propio tipo de estado.
+
+**Ley D3.3.2**  
+La `expiración` (temporal) no es un estado persistente. Es una condición derivada del intervalo de validez y el tiempo de evaluación.
+
+---
+
+### D3.4 — Identidad de Entity vs membresía en el estado (leyes separadas)
+
+Para cualquier transición `T` que actualice una Entity `E`:
+
+**Ley D3.4.1 — Preservación de identidad**  
+`EntityId(E_after) == EntityId(E_before)`
+
+**Ley D3.4.2 — Preservación de membresía en el estado**  
+`EntityId(E_after) ∈ AuthorizationState(after)`  
+si y solo si `EntityId(E_before) ∈ AuthorizationState(before)`
+
+Es decir, la pertenencia al estado se conserva a través de la transición, independientemente del cambio de estado o de la validez temporal.
+
+---
+
+### D3.5 — Usabilidad y contribución a EffectiveAuthority
+
+La usabilidad de una Entity para contribuir a `EffectiveAuthority` depende de:
+
+- Su **estado persistente** (ej. `Active` vs `Revoked`).
+- Su **validez temporal** (si aplica).
+- Para `Session`: que su `Credential` origen sea usable.
+- Para `Delegation`: que la autoridad delegada pueda ser ejercida por el source (evaluado por provenance).
+
+**Ley D3.5.1**  
+Una Entity solo puede contribuir a `EffectiveAuthority` si:
+- Su estado persistente es `Active` (o su equivalente, según el ciclo de vida).
+- Cumple con las condiciones temporales (ej. `validFrom <= now <= validUntil`).
+- Para `Session`: su `Credential` origen es usable.
+- Para `Delegation`: la autoridad delegada es ejercible por el source en el contexto actual.
+
+**Ley D3.5.2**  
+Una Entity revocada (`Revoked`) nunca contribuye a `EffectiveAuthority`, independientemente de su validez temporal.
+
+**Ley D3.5.3**  
+Una Entity con estado `Active` pero temporalmente inválida (ej. expirada) no contribuye a `EffectiveAuthority`; su contribución es `∅` en ese momento.
+
+---
+
+### D3.6 — Propagación de invalidez por revocación de Credential
+
+**Ley D3.6.1**  
+Si una `Credential` se revoca, toda `Session` que dependa de ella (tenga su `CredentialId`) deja de ser usable. Su estado persistente puede seguir siendo `Active`, pero su contribución a `EffectiveAuthority` es `∅` porque su fuente de autoridad ha sido invalidada.
+
+**Ley D3.6.2**  
+La revocación de una `Credential` **no invalida automáticamente todas las `Delegation`** del sistema. Una Delegation puede ser afectada solo si la autoridad delegada provenía de esa Credential (por provenance), pero no existe una dependencia estructural universal. La evaluación de usabilidad de una Delegation debe considerar la procedencia de su autoridad y si esa autoridad sigue siendo válida en el contexto actual.
+
+**Ley D3.6.3**  
+No es necesario revocar explícitamente cada Session o Delegation al revocar una Credential. La invalidez se propaga por las reglas de `EffectiveAuthority` (según D1 y D3.5), no por cambios de estado de las Entities hijas.
+
+---
+
+### D3.7 — Transiciones válidas y conservación de invariantes
+
+**Ley D3.7.1**  
+Cualquier transición que modifique el estado de una Entity debe preservar:
+- Identidad de la Entity.
+- Pertenencia al estado.
+- Invariantes de integridad (ej. una Credential no puede estar simultáneamente en dos estados).
+
+**Ley D3.7.2**  
+Una transición que intente eliminar una Entity del estado (remover su representación) no es válida.  
+El dominio no admite eliminación; solo cambios de estado.
+
+---
+
+### D3.8 — Separación de responsabilidades
+
+**Ley D3.8.1**  
+`AuthorizationState` es una estructura de datos que mantiene el estado de reconocimiento y atributos de las Entities. No contiene funciones mutadoras.
+
+**Ley D3.8.2**  
+Las transiciones de estado (ej. `revokeCredential`, `createSession`) son responsabilidad de `AccountTransitions` o `PolicyConsumption`. Estas funciones toman un `AuthorizationState` y producen un nuevo estado válido, verificando las invariantes.
+
+---
+
+## Modelo conceptual de D3
+
+```text
+                     AUTHORIZATION STATE
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+    Credentials        Sessions         Delegations
+            │               │               │
+      (EntityId)      (EntityId)       (EntityId)
+            │               │               │
+    CredentialStatus  SessionStatus   DelegationStatus
+    (Active|Susp..)   (Active|Revoked) (Active|Revoked)
+            │               │               │
+            │         validFrom/Until   validFrom/Until
+            │               │               │
+            └───────────────┼───────────────┘
+                            │
+                            ▼
+                   EVALUACIÓN DE USABILIDAD
+              (estado persistente + temporal
+               + dependencias + provenance)
+                            │
+                            ▼
+                   EFFECTIVE AUTHORITY
+```
+
+La distinción clave:
+
+```text
+Entity identity
+    = estable, independiente del estado
+
+Entity recognition in state
+    = persistente a lo largo del ciclo de vida
+
+Entity usability
+    = determinada por estado persistente,
+      validez temporal, dependencias y provenance
+```
+
+---
+
+## Principios invariantes de D3
+
+1. **El identificador de una Entity es inmutable.**  
+   `Id` es lo que define la Entity a lo largo de su ciclo de vida.
+
+2. **La pertenencia al estado es permanente una vez que la Entity ha sido reconocida.**  
+   No se eliminan Entities del estado; solo cambian de estado interno.
+
+3. **Cada Entity tiene su propio ciclo de vida; no hay un `EntityStatus` universal.**  
+   Credential, Session y Delegation tienen conjuntos de estados distintos, definidos por el dominio.
+
+4. **La expiración es una condición temporal, no un estado persistente.**  
+   Las Entities pueden ser temporalmente inválidas sin cambiar su estado persistente.
+
+5. **La revocación de una Credential invalida las Sessions que dependen de ella, pero no las Delegations por defecto.**  
+   Las Delegations se evalúan según su fuente y provenance.
+
+6. **Las transiciones de estado deben preservar la identidad y la membresía en el estado.**  
+   Estas son invariantes transversales.
+
+7. **`AuthorizationState` no muta su propio estado; las transiciones son externas y producen nuevos estados válidos.**
+
+---
+
+## Relación con otros módulos del dominio
+
+- **`AuthorizationState`**: Estructura de datos que almacena Entities con sus estados y atributos temporales. No contiene lógica de mutación.
+- **`EffectiveAuthority`**: Calcula la autoridad actual filtrando Entities por usabilidad (estado, temporalidad, dependencias y provenance).
+- **`AccountTransitions`**: Define las transiciones de estado válidas (ej. revocar Credential, crear Session). Toma un estado y devuelve un nuevo estado o error.
+- **`PolicyConsumption`**: Puede incluir efectos como `RevokeCredential(id)`, que desencadena una transición de estado en `AccountTransitions`.
+- **`Session`**: Depende explícitamente de una Credential.
+- **`Delegation`**: Depende de una Identity fuente; su validez se evalúa por provenance.
+
+# D4 — Proof e igualdad de Authorization
+
+## Decisiones de dominio
+
+1. **`Proof` es un concepto de infraestructura criptográfica.**  
+   No pertenece al dominio semántico de `Authorization`. Su propósito es demostrar que la `Authorization` fue producida mediante la `Credential` correspondiente, pero no define qué autorización se solicita.
+
+2. **La igualdad de `Proof` es irrelevante para el dominio.**  
+   Dos `Proof` pueden ser estructuralmente diferentes y, sin embargo, representar evidencia válida para la misma autorización semántica.  
+   El dominio no define `Proof A == Proof B`; esa igualdad es responsabilidad del Verifier o de la capa de transporte.
+
+3. **`Proof validity` ≠ `Proof equality` ≠ `Authorization validity`.**  
+   - `Proof validity`: evidencia criptográficamente correcta (verificador).  
+   - `Proof equality`: comparación estructural/infraestructura.  
+   - `Authorization validity`: dominio semántico + condiciones de autorización.
+
+4. **`Authorization` es un Value Object cuya igualdad se define por su contenido semántico, no por la evidencia adjunta.**  
+   El contenido semántico incluye:
+   - `Credential` (referencia).
+   - `Requested Authority` (Capabilities, Scope, Restricciones).
+   - Condiciones temporales.
+   - **`Replay Protection`** (nonce, secuencia, expiración, contexto único).
+   - **Contexto relevante** (definido en la sección 18 del DDD: `AccountId`, `ExecutionTarget`, `DomainAction`, `Scope` y `Chain`).
+
+   La `Proof` queda fuera de la igualdad semántica.
+
+5. **`Replay Protection` es parte esencial del valor semántico de `Authorization`.**  
+   Dos solicitudes con exactamente el mismo contenido semántico (misma Credential, mismas Capabilities, mismas restricciones, mismo contexto) pero con distintos `replayKey` representan authorizaciones diferentes en el tiempo.  
+   Esto evita que un atacante replique una Authorization válida aunque presente una Proof criptográficamente diferente.
+
+6. **`Authorization` puede contener estructuralmente una `Proof`, pero esa contención no afecta su igualdad.**  
+   Es un contenedor semántico que, por razones de transporte/verificación, incluye evidencia, pero la evidencia no define el valor conceptual.
+
+7. **No se introducen predicados artificiales como `SameAuthorization(a,b)` o `SameProof(p,q)`.**  
+   La igualdad nativa del Value Object refleja directamente la igualdad semántica.  
+   Si la representación en Dafny permite que la igualdad nativa exprese correctamente esa igualdad semántica, se utiliza directamente.
+
+---
+
+## Formal Domain Laws
+
+### D4.1 — Proof as Infrastructure Concept
+
+**Ley D4.1.1**  
+`Proof` es un concepto de infraestructura. Su definición, representación e igualdad son externas al dominio `Account`.
+
+**Ley D4.1.2**  
+El dominio no define `Proof equality`. La igualdad de `Proof` es responsabilidad del Verifier o de la capa de transporte.
+
+---
+
+### D4.2 — Proof Validity vs Authorization Validity
+
+**Ley D4.2.1**  
+`Proof validity` (verificación criptográfica) es una condición necesaria pero no suficiente para `Authorization validity`.
+
+**Ley D4.2.2**  
+Una `Proof` válida no implica que la `Authorization` sea válida en el dominio.  
+La validez de dominio requiere además que la `Requested Authority` esté contenida en `Effective Authority` y que se cumplan todas las demás condiciones de `Authorization Validation`.
+
+---
+
+### D4.3 — Authorization Semantic Value
+
+**Ley D4.3.1**  
+El valor semántico de una `Authorization` se define por el conjunto de atributos de dominio que constituyen su intención autorizada:
+
+```text
+SemanticValue(Authorization)
+    =
+( Credential,
+  RequestedAuthority,
+  Restrictions,
+  TemporalConditions,
+  ReplayProtection,
+  Context )
+```
+
+donde el `Context` está compuesto por:
+
+- `AccountId`: la Account sobre la que se ejerce la autoridad.
+- `ExecutionTarget`: el destino técnico de la ejecución.
+- `DomainAction`: la acción de negocio solicitada (definida por el consumidor).
+- `Scope`: el ámbito de la acción.
+- `Chain`: identificador de la cadena blockchain (si aplica).
+
+Estos elementos forman parte del valor semántico y, por tanto, afectan a la igualdad de `Authorization`.
+
+**Ley D4.3.2**  
+La `Proof` **no forma parte** del valor semántico de `Authorization`.
+
+---
+
+### D4.4 — Authorization Equality
+
+**Ley D4.4.1**  
+Dos `Authorization` son iguales si y solo si sus valores semánticos son idénticos:
+
+```text
+Authorization A == Authorization B
+    ⇔
+SemanticValue(A) == SemanticValue(B)
+```
+
+**Ley D4.4.2**  
+Dos `Authorization` pueden tener `Proof` diferentes y ser semánticamente iguales si todos sus atributos semánticos coinciden.
+
+**Ley D4.4.3**  
+Dos `Authorization` pueden tener la misma `Proof` y ser semánticamente diferentes si sus atributos semánticos difieren.
+
+---
+
+### D4.5 — Replay Protection as Semantic Attribute
+
+**Ley D4.5.1**  
+`Replay Protection` es un atributo semántico de `Authorization`.  
+Incluye, al menos, un mecanismo que garantice que una `Authorization` no pueda ser reutilizada fuera de su contexto temporal o de estado original (ej. nonce, sequence number, expiry, consumption marker).
+
+**Ley D4.5.2**  
+Dos `Authorization` con idénticos atributos semánticos excepto su `Replay Protection` representan autorizaciones diferentes y no son iguales según la ley D4.4.1.
+
+**Ley D4.5.3**  
+La `Proof` no sustituye a `Replay Protection`.  
+Aunque la `Proof` sea diferente, si el `Replay Protection` es el mismo y el resto del valor semántico coincide, la Authorization es un **replay** y debe ser rechazada por el estado de Replay.
+
+---
+
+### D4.6 — Structural Containment vs Semantic Equality
+
+**Ley D4.6.1**  
+Una `Authorization` puede contener estructuralmente una `Proof` sin que esa contención afecte a su igualdad semántica.
+
+**Ley D4.6.2**  
+La igualdad de `Authorization` en el dominio **no** se implementa comparando la `Proof`; se implementa comparando exclusivamente los atributos semánticos definidos en D4.3.1.
+
+---
+
+### D4.7 — No Artificial Equality Predicates
+
+**Ley D4.7.1**  
+Para los Value Objects del dominio, la igualdad semántica es la igualdad nativa del lenguaje formal (ej. `==` en Dafny) siempre que la representación del tipo permita expresar esa igualdad correctamente.
+
+**Ley D4.7.2**  
+No se introducen predicados como `SameAuthorization(A, B)` o `SameProof(P, Q)` que dupliquen o contradigan la igualdad semántica.
+
+---
+
+## Modelo conceptual de D4
+
+```text
+                  AUTHORIZATION
+                         │
+         ┌───────────────┴───────────────┐
+         │                               │
+   SEMANTIC CONTENT              CRYPTOGRAPHIC EVIDENCE
+         │                               │
+         ▼                               ▼
+   Credential Reference                Proof
+   Requested Authority                 (infraestructura)
+   Restrictions
+   Temporal Conditions
+   Replay Protection
+   Context (AccountId, ExecutionTarget,
+           DomainAction, Scope, Chain)
+         │
+         ▼
+   IGUALDAD SEMÁNTICA
+   (solo considera Semantic Content)
+```
+
+La separación clave:
+
+```text
+Authorization semantic value
+    = Credential + Requested Authority + Restrictions +
+      Temporal Conditions + Replay Protection + Context
+
+Authorization structural content
+    = semantic value + Proof (adjunta para verificación)
+
+Authorization equality
+    = equality of semantic value (ignora Proof)
+```
+
+---
+
+## Principios invariantes de D4
+
+1. **La evidencia criptográfica no es el mensaje.**  
+   La `Proof` demuestra que el mensaje fue firmado por la `Credential`, pero no define el contenido del mensaje.
+
+2. **La igualdad semántica es independiente de la evidencia.**  
+   Dos autorizaciones con el mismo significado son iguales, incluso si las pruebas son diferentes.
+
+3. **`Replay Protection` es el ancla semántica de unicidad temporal.**  
+   Evita que el sistema confunda dos solicitudes idénticas en el tiempo.
+
+4. **La infraestructura verifica la `Proof`; el dominio valida la `Authorization`.**  
+   Cada capa tiene su responsabilidad. No se mezclan.
+
+5. **No se crean artificialmente `SameX` predicates.**  
+   La igualdad nativa en la formalización (Dafny) refleja la igualdad semántica del dominio sin duplicaciones innecesarias.
+
+---
+
+## Relación con otros módulos del dominio
+
+- **`Authorization`** (Value Object): Define su igualdad por valor semántico, incluyendo el Context (AccountId, ExecutionTarget, DomainAction, Scope, Chain).
+- **`Proof`** (infraestructura): Externa al dominio; se verifica pero no se compara semánticamente.
+- **`Replay Protection`** (atributo semántico): Forma parte de `Authorization`; su estado se gestiona en `Replay.dfy` o en el estado de consumo.
+- **`AuthorizationValidation`**: Recibe una `Authorization` y una `Proof`.  
+  Valida la `Proof` (vía Verifier) y luego valida la `Authorization` semántica (incluyendo Replay, Effective Authority y compatibilidad del Contexto con el estado de la Account).
+- **`Runtime`**: Orquesta la validación combinada.
+
+## Formal Domain Laws
+
+### D5.1 — Asociación Restriction–Capability–Scope
+
+`AuthorizationState` contiene un mapeo:
+
+```text
+RestrictionMap: (Capability × OptionalScope) → Restriction
+```
+
+**Ley D5.1.1**  
+Para cada `(Capability, Scope)` existe a lo sumo una Restriction.
+
+**Ley D5.1.2**  
+Si una Capability no tiene Restriction asociada en un Scope, se considera que no hay restricción adicional (equivalente a "sin restricción").
+
+---
+
+### D5.2 — Aplicación de ModifyRestriction
+
+La operación `ModifyRestriction(cap, scope, newRestriction)` sobre `AuthorizationState` se define como:
+
+**Ley D5.2.1**  
+Si `scope` está presente:
+- Reemplaza o añade la asociación `(cap, scope) → newRestriction`.
+
+**Ley D5.2.2**  
+Si `scope` está ausente:
+- Reemplaza o añade la asociación `(cap, null) → newRestriction` (Scope general).
+
+**Ley D5.2.3**  
+La operación es atómica: o bien se actualiza todo el estado, o bien no se produce ningún cambio.
+
+---
+
+### D5.3 — Integridad de la asociación
+
+**Ley D5.3.1**  
+No pueden existir dos Restricciones para la misma `(Capability, Scope)`.
+
+**Ley D5.3.2**  
+Si una Capability se elimina de `AuthorizationState` (por ejemplo, porque se revoca su autoridad), todas sus Restricciones asociadas deben eliminarse también.
+
+**Ley D5.3.3**  
+Una Restriction no puede existir en `AuthorizationState` sin estar asociada a una Capability existente.
+
+---
+
+### D5.4 — Efecto en EffectiveAuthority
+
+Al calcular `EffectiveAuthority`:
+
+**Ley D5.4.1**  
+Para cada Capability que se considera ejercible, se aplica la Restriction asociada a `(Capability, Scope)` si existe.
+
+**Ley D5.4.2**  
+La Restriction se aplica como una intersección con la autoridad derivada: la Capability solo es ejercible en la medida en que la Restriction lo permita.
+
+**Ley D5.4.3**  
+Si no existe Restriction para la Capability/Scope, la autoridad no se ve restringida por este mecanismo.
+
+---
+
+### D5.5 — Consistencia con el ciclo de vida de Entities
+
+**Ley D5.5.1**  
+La asociación `(Capability, Scope) → Restriction` es independiente de las Entities (Credential, Session, Delegation).  
+Las Restricciones son parte del estado operativo de la Account y persisten mientras la Capability sea reconocida.
+
+**Ley D5.5.2**  
+La eliminación de una Credential no elimina automáticamente las Restricciones de Capability; estas son gestionadas por transiciones de AuthorizationState (ej. `DisableCapability`, `ModifyRestriction`).
+
+---
+
+## Modelo conceptual de D5
+
+```text
+                     AUTHORIZATION STATE
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+    Capabilities        Credentials      RestrictionMap
+            │               │               │
+      (EntityId)      (EntityId)          │
+            │               │               │
+    CapabilityKind   CredentialStatus    (Capability, Scope)
+            │               │               │
+         Scope              ...          Restriction
+            │               │               │
+            └───────────────┼───────────────┘
+                            │
+                            ▼
+                   EFFECTIVE AUTHORITY
+              (con Restricciones aplicadas)
+```
+
+La distinción clave:
+
+```text
+Restriction
+    = Value Object sin Capability/Scope
+
+RestrictionMap
+    = Asociación que vincula cada Capability/Scope
+      con su Restriction correspondiente
+
+AuthorizationState
+    = Contiene Capabilities, Credentials y RestrictionMap
+```
+
+---
+
+## Implicaciones para el DDD
+
+1. **`AuthorizationState` se enriquece con una estructura de asociación explícita.**  
+   Ya no es solo un conjunto de Restricciones, sino un mapeo que relaciona Capability, Scope y Restriction.
+
+2. **`ModifyRestriction` se vuelve operacionalmente determinista.**  
+   Al conocer el target, se puede reemplazar la Restricción anterior sin ambigüedad.
+
+3. **`EffectiveAuthority` puede aplicar Restricciones correctamente.**  
+   Ahora sabe qué Restriction corresponde a cada Capability en cada Scope.
+
+4. **`Restriction` sigue siendo un Value Object puro.**  
+   No se modifica su semántica; solo se añade la relación externa en `AuthorizationState`.
+
+5. **La integridad referencial queda garantizada.**  
+   No pueden existir Restricciones huérfanas o duplicadas.
+
+---
+
+## Principios invariantes de D5
+
+1. **Cada `(Capability, Scope)` tiene a lo sumo una Restriction.**  
+   Esto garantiza la unicidad y evita conflictos.
+
+2. **Toda Restriction está asociada a una Capability existente.**  
+   No hay Restricciones sin Capability.
+
+3. **La modificación de una Restriction es atómica y reemplaza la anterior.**  
+   No hay acumulación de Restricciones sobre el mismo target.
+
+4. **`EffectiveAuthority` siempre aplica la Restriction correspondiente al Scope.**  
+   Si existe, limita la autoridad; si no, no hay restricción adicional.
+
+5. **La asociación es independiente de Credential, Session y Delegation.**  
+   Es un atributo de la Capability en el estado de autorización.
+
+---
+
+## Relación con otros módulos del dominio
+
+- **`AuthorizationState`**: Contiene `RestrictionMap` como parte de su estructura.
+- **`PolicyEffect`**: `ModifyRestriction` actúa sobre `RestrictionMap`.
+- **`EffectiveAuthority`**: Consulta `RestrictionMap` al calcular la autoridad efectiva.
+- **`PolicyConsumption`**: Orquesta la aplicación atómica de `ModifyRestriction` junto con otros efectos.
+- **`AccountTransitions`**: Puede incluir transiciones que afecten a `RestrictionMap` (ej. `DisableCapability` podría eliminar la Restriction asociada).
+
+# D6 — Authorization Acceptance vs Execution Environment
+
+Esta sección establece una decisión arquitectónica explícita sobre la relación entre `Authorization`, `Chain` y `ExecutionEnvironment`.
+
+Su propósito es evitar una interpretación incorrecta de la formalización en la que la ausencia de un `expectedChain` dentro de `Authorization Validation` sea considerada una deuda o una omisión.
+
+La arquitectura definida aquí es **intencional**.
+
+---
+
+## D6.1 — Authorization Acceptance es independiente del Execution Environment
+
+`Authorization Acceptance` determina si una `Authorization` puede ser aceptada por una `Account` de acuerdo con las reglas semánticas de autorización del dominio.
+
+Conceptualmente:
+
+```text
+Authorization
+      +
+Account
+      +
+Authorization State
+      +
+Effective Authority
+      +
+Authorization Validation conditions
+      ↓
+Accepted Authorization
+```
+
+`Authorization Acceptance` **NO requiere seleccionar previamente un `ExecutionEnvironment` concreto**.
+
+Por tanto:
+
+```text
+Authorization Acceptance
+    ≠
+Environment-specific Execution Delivery
+```
+
+La aceptación responde:
+
+> **¿Esta Authorization satisface las condiciones semánticas necesarias para ser aceptada por esta Account?**
+
+No responde:
+
+> **¿Esta Authorization puede materializarse físicamente mediante este entorno de ejecución concreto?**
+
+---
+
+## D6.2 — Chain sigue siendo parte de Authorization
+
+La independencia respecto del `ExecutionEnvironment` no elimina ni debilita la semántica de `Chain`.
+
+`Chain` forma parte del contexto semántico de `Authorization`.
+
+Por tanto:
+
+```text
+Authorization A
+    Chain = ChainA
+
+Authorization B
+    Chain = ChainB
+```
+
+son Authorizations semánticamente diferentes cuando:
+
+```text
+ChainA != ChainB
+```
+
+`Chain` participa en la igualdad semántica de `Authorization`.
+
+Por tanto:
+
+```text
+Chain
+    =
+semantic Authorization context
+```
+
+y no:
+
+```text
+Chain
+    =
+mere infrastructure metadata
+```
+
+---
+
+## D6.3 — Semantic Chain != Selected Execution Environment
+
+El `Chain` contenido en una `Authorization` representa contexto semántico de esa intención autorizada.
+
+El `ExecutionEnvironment` representa el entorno concreto mediante el cual una decisión ya validada será materializada.
+
+Son conceptos diferentes:
+
+```text
+Authorization.Chain
+    =
+semantic authorization context
+
+ExecutionEnvironment
+    =
+selected materialization environment
+```
+
+La existencia de un `Chain` dentro de `Authorization` no implica que `Authorization Validation` deba recibir un parámetro independiente:
+
+```text
+expectedChain : Chain
+```
+
+simplemente para relacionar la autorización con una infraestructura seleccionada.
+
+Ese parámetro no forma parte de la semántica necesaria para la aceptación independiente del entorno.
+
+---
+
+## D6.4 — Environment compatibility pertenece a la materialización
+
+La compatibilidad entre:
+
+```text
+Authorization Chain
+```
+
+y:
+
+```text
+ExecutionEnvironment
+```
+
+se evalúa en el execution boundary.
+
+Conceptualmente:
+
+```text
+Authorization
+      │
+      │ Chain
+      ▼
+Execution Context
+      │
+      │
+      ▼
+Selected Execution Environment
+      │
+      ▼
+Chain × Environment Compatibility
+```
+
+La decisión de compatibilidad puede depender de infraestructura externa y de los mecanismos concretos disponibles para materializar la ejecución.
+
+Por tanto, la compatibilidad se expresa como una relación contextual:
+
+```text
+CompatibleChainEnvironment
+    ⊆
+Chain × ExecutionEnvironment
+```
+
+El dominio no fija una implementación concreta de esa relación.
+
+---
+
+## D6.5 — Intrinsic validity vs environment-specific delivery
+
+El dominio distingue expresamente:
+
+```text
+Intrinsic Execution Validity
+```
+
+de:
+
+```text
+Environment-specific Delivery Validity
+```
+
+Una `ExecutionContext` puede ser intrínsecamente válida y, al mismo tiempo, ser incompatible con un `ExecutionEnvironment` concreto.
+
+Formalmente:
+
+```text
+Valid(ExecutionContext)
+```
+
+no implica:
+
+```text
+CanEnterEngine(ExecutionContext, every Environment)
+```
+
+La entrada a un entorno concreto requiere adicionalmente:
+
+```text
+Compatible(
+    AuthorizationChain(ExecutionContext),
+    SelectedEnvironment
+)
+```
+
+Por tanto:
+
+```text
+EngineInputValidity
+    =
+IntrinsicValidity
+
+EnvironmentSpecificEngineDelivery
+    =
+IntrinsicValidity
+    +
+Chain/Environment compatibility
+```
+
+---
+
+## D6.6 — Cross-chain infrastructure is not part of Authorization semantics
+
+La arquitectura debe permitir que una decisión semánticamente válida pueda ser materializada mediante diferentes mecanismos de infraestructura.
+
+Estos mecanismos pueden incluir, entre otros:
+
+```text
+Account Abstraction
+    EIP-7702
+    ERC-4337
+    futuras variantes
+
+Execution adapters
+
+Cross-chain messaging
+
+Relayers
+
+Bridges
+
+Interoperability protocols
+
+otros mecanismos futuros
+```
+
+El dominio no depende de un proveedor concreto.
+
+Por ejemplo, mecanismos de interoperabilidad pueden ser proporcionados por:
+
+```text
+Chainlink
+LayerZero
+otro proveedor
+```
+
+sin que ninguno de ellos forme parte de la definición semántica de:
+
+```text
+Authorization
+Account
+Identity
+EffectiveAuthority
+ExecutionContext
+```
+
+La arquitectura debe evitar vendor lock-in semántico.
+
+---
+
+## D6.7 — Deployment environment does not redefine the domain
+
+Una implementación concreta puede desplegar inicialmente el sistema en una blockchain o entorno específico.
+
+Por ejemplo:
+
+```text
+Current deployment
+    =
+Arbitrum
+    +
+Stylus
+```
+
+Esta decisión de deployment **no redefine el universo semántico de Authorization**.
+
+Por tanto, no debe inferirse:
+
+```text
+Current deployment chain
+    =
+only valid Authorization chain
+```
+
+ni:
+
+```text
+Current execution infrastructure
+    =
+domain-level authorization constraint
+```
+
+La infraestructura actual puede ser específica mientras el modelo semántico permanezca preparado para múltiples entornos compatibles.
+
+---
+
+## D6.8 — User-selected blockchain does not redefine Authorization semantics
+
+Un usuario puede eventualmente seleccionar una blockchain o infraestructura concreta para materializar una ejecución.
+
+Eso no significa que la semántica de `Authorization` deba depender de dicha selección en el momento de `Authorization Acceptance`.
+
+La arquitectura permite:
+
+```text
+User intent
+    ↓
+Authorization
+    ↓
+Authorization Acceptance
+    ↓
+Runtime
+    ↓
+Infrastructure selection
+    ↓
+Environment-specific delivery
+```
+
+El usuario puede ser completamente abstraído de las tecnologías concretas utilizadas para materializar la decisión.
+
+De igual manera, un usuario avanzado puede seleccionar explícitamente determinados entornos o mecanismos sin alterar las reglas semánticas fundamentales de autorización.
+
+---
+
+## D6.9 — No existe una deuda por ausencia de expectedChain
+
+La ausencia de:
+
+```text
+expectedChain : Chain
+```
+
+en `AuthorizationCanBeAccepted` **no constituye una formalization debt** bajo esta arquitectura.
+
+La razón es que:
+
+```text
+Authorization Acceptance
+```
+
+es deliberadamente independiente de:
+
+```text
+Selected Execution Environment
+```
+
+La propiedad formal:
+
+```text
+accepted(Authorization(ChainA))
+    ⇒
+accepted(Authorization(ChainB))
+```
+
+cuando únicamente se sustituye `Chain` y se preservan las demás condiciones de aceptación, demuestra esta independencia.
+
+No debe interpretarse como:
+
+```text
+Chain is irrelevant
+```
+
+ni como:
+
+```text
+Any Authorization can execute on Any Chain
+```
+
+La interpretación correcta es:
+
+```text
+Chain is semantically relevant,
+but Environment selection is a later materialization concern.
+```
+
+---
+
+## D6.10 — Formalization interpretation
+
+La formalización debe interpretar conjuntamente las siguientes propiedades:
+
+### Authorization semantics
+
+```text
+Chain
+    ∈
+Authorization semantic value
+```
+
+### Authorization Acceptance
+
+```text
+AuthorizationCanBeAccepted
+    does not require
+    a selected ExecutionEnvironment
+```
+
+### Execution Context
+
+```text
+ExecutionContext
+    carries
+    Authorization
+```
+
+y por tanto transporta su `Chain`.
+
+### Execution Environment
+
+```text
+ExecutionEnvironment
+    ∉
+ExecutionContext semantic value
+```
+
+### Environment delivery
+
+```text
+Chain × ExecutionEnvironment
+    →
+compatibility relation
+```
+
+### Execution Engine
+
+```text
+Engine delivery
+    requires
+    intrinsic validity
+    +
+environment compatibility
+```
+
+Estas propiedades son complementarias.
+
+No deben fusionarse en una única regla.
+
+---
+
+## D6.11 — Architectural principle
+
+La arquitectura establece el siguiente principio:
+
+```text
+Semantic authorization
+        ↓
+Infrastructure-independent acceptance
+        ↓
+Execution decision
+        ↓
+Environment selection
+        ↓
+Infrastructure-specific materialization
+```
+
+Por tanto:
+
+> **Kipio define la semántica de una decisión autorizada antes de seleccionar el mecanismo concreto mediante el cual esa decisión será materializada.**
+
+Esto permite que la misma primitive de identidad, autoridad y autorización pueda utilizarse junto con diferentes:
+
+* blockchains;
+* Account Abstraction mechanisms;
+* execution adapters;
+* cross-chain protocols;
+* relayers;
+* sponsorship mechanisms;
+* infrastructure providers;
+
+sin convertir esas elecciones en parte artificial de la semántica de `Authorization`.
+
+---
+
+## D6.12 — Consecuencia para la formalización Dafny
+
+Cuando una prueba adversarial demuestre que:
+
+```text
+AuthorizationCanBeAccepted(...)
+```
+
+permanece verdadera después de cambiar únicamente:
+
+```text
+Authorization.Chain
+```
+
+la interpretación por defecto debe ser:
+
+```text
+INTENTIONAL ARCHITECTURAL PROPERTY
+```
+
+y no:
+
+```text
+FORMALIZATION DEBT
+```
+
+salvo que una futura decisión explícita del DDD modifique esta arquitectura.
+
+En particular:
+
+```text
+CHAIN-INDEPENDENT AUTHORIZATION ACCEPTANCE
+    = intentional
+```
+
+mientras:
+
+```text
+CHAIN-SENSITIVE ENVIRONMENT DELIVERY
+    = required
+```
+
+---
+
+## D6.13 — Canonical separation
+
+La separación canónica del modelo es:
+
+```text
+Authorization
+    =
+semantic authorization decision
+
+ExecutionContext
+    =
+complete validated execution decision
+
+ExecutionEnvironment
+    =
+selected materialization environment
+
+Adapter / Infrastructure
+    =
+mechanism used to materialize the decision
+```
+
+y:
+
+```text
+Authorization Acceptance
+    ≠
+Environment Compatibility
+    ≠
+Physical Execution
+
