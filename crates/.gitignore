@@ -1,0 +1,12 @@
+# Build artifacts
+**/target/
+
+# Per-crate lockfiles
+# Libraries do not pin transitive dependencies on crates.io.
+# Cargo.lock is resolved at the consuming side.
+**/Cargo.lock
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~
