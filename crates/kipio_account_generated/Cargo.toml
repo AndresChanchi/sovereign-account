@@ -1,0 +1,14 @@
+[package]
+name = "kipio_account_generated"
+version = "0.1.0"
+edition = "2024"
+description = "Dafny-generated Kipio Account domain model"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/AndresChanchi/sovereign-account"
+documentation = "https://docs.rs/kipio_account_generated"
+readme = "README.md"
+keywords = ["dafny", "kipio", "account", "domain-model"]
+
+[dependencies]
+dafny_runtime = { package = "kipio_dafny_runtime", version = "0.1.0", path = "../kipio_dafny_runtime" }
+# kipio_domain_externs = { path = "externs" } Wololo
